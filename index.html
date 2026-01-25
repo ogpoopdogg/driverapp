@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>E&C Dispatch | Smart Board</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --card-bg: #1a1a1a;
+    --active-green: #4caf50;
+    --review-blue: #2196f3;
+    --danger-red: #f44336;
+    --text-main: #ffffff;
+    --text-dim: #a0a0a0;
+  }
+  * { box-sizing: border-box; }
+  
+  /* FIX: Full screen scaling */
+  html, body { 
+    height: 100vh; 
+    width: 100vw; 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden; 
+  }
+
+  body { 
+    font-family: -apple-system, system-ui, sans-serif; 
+    background: #050505; 
+    color: #eee; 
+    display: flex; 
+    flex-direction: column; 
+  }
+  
+  header { 
+    padding: 15px 20px; 
+    background: #000; 
+    border-bottom: 4px solid var(--accent); 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    flex-shrink: 0;
+  }
+  h1 { margin: 0; color: var(--accent); font-size: 24px; letter-spacing: 2px; font-weight: 900; }
+
+  #main-container { 
+    display: flex; 
+    flex: 1; 
+    width: 100%; 
+    overflow: hidden; 
+  }
+
+  #history-sidebar { 
+    width: 280px; 
+    border-right: 2px solid #222; 
+    overflow-y: auto; 
+    background: #0d0d0d; 
+    padding: 15px; 
+    flex-shrink: 0;
+  }
+  
+  #live-feed { 
+    flex: 1; 
+    padding: 20px; 
+    overflow-y: auto; 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); 
+    align-content: start; 
+    gap: 20px;
+  }
+
+  .section-label {
+    font-size: 13px; font-weight: 900; color: #666; text-transform: uppercase;
+    margin-bottom: 12px; letter-spacing: 2px; display: block;
+    border-bottom: 2px solid #222; padding-bottom: 8px;
+  }
+
+  .history-item {
+    background: #151515; padding: 12px; margin-bottom: 10px; border-radius: 6px;
+    border-left: 5px solid #333; font-size: 16px; cursor: pointer;
+    line-height: 1.3; color: var(--text-main);
+  }
+
+  .active-card {
+    position: relative;
+    background: var(--card-bg); padding: 20px; border-radius: 12px;
+    border: 2px solid #333; display: flex; flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  
+  /* NEW: Timestamp in right corner */
+  .card-time {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--active-green);
+    background: rgba(0,0,0,0.4);
+    padding: 3px 7px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  .card-label { color: var(--accent); font-size: 12px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+  .card-value { font-size: 26px; font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 15px; text-transform: uppercase; width: 80%; }
+  .dest-value { font-size: 20px; font-weight: 700; color: #ddd; margin-bottom: 15px; }
+  
+  .meta-row { display: flex; justify-content: space-between; border-top: 1px solid #333; padding-top: 15px; margin-top: 5px; gap: 10px; }
+  .meta-item { flex: 1; }
+  .meta-label { font-size: 10px; color: #777; font-weight: 800; text-transform: uppercase; }
+  .meta-val { font-size: 16px; color: #fff; font-weight: 600; }
+
+  .details-box {
+    background: #000; padding: 15px; border-radius: 8px; margin-top: 15px;
+    border-left: 4px solid var(--review-blue);
+  }
+
+  .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+  
+  .info-toggle-btn {
+    flex: 1; padding: 15px; background: #333; border: none; border-radius: 8px;
+    color: #fff; font-weight: 800; cursor: pointer; text-transform: uppercase;
+  }
+
+  .complete-btn {
+    flex: 2; padding: 15px; border: none; border-radius: 8px; font-size: 16px;
+    font-weight: 900; cursor: pointer; background: var(--active-green); color: white;
+    text-transform: uppercase;
+  }
+
+  .close-review-btn {
+    width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px;
+    font-weight: 900; cursor: pointer; background: #444; color: white;
+    text-transform: uppercase; margin-top: 20px;
+  }
+
+  .history-controls { display: flex; gap: 8px; margin-bottom: 25px; }
+  .ctrl-btn {
+    flex: 1; padding: 12px; border: 2px solid #333; border-radius: 6px;
+    font-size: 11px; font-weight: 900; cursor: pointer; background: #111;
+    color: #fff; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>E&C DISPATCH LIVE</h1>
+  <div id="date-display" style="font-size: 14px; color: var(--active-green); font-weight: 900;"></div>
+</header>
+
+<div id="main-container">
+  <div id="history-sidebar">
+    <span class="section-label">Board Tools</span>
+    <div class="history-controls">
+        <button class="ctrl-btn" style="color: var(--danger-red);" onclick="wipeHistory()">Clear</button>
+        <button class="ctrl-btn" style="color: var(--review-blue);" onclick="restoreHistory()">Restore</button>
+    </div>
+    
+    <div id="new-list-container"><span class="section-label" style="color:var(--active-green)">Recently Done</span><div id="recent-log"></div></div>
+    
+    <div id="archive-list-container" style="display:none; opacity: 0.6; margin-top: 20px;">
+        <span class="section-label">Archive</span>
+        <div id="history-log"></div>
+    </div>
+  </div>
+  
+  <div id="live-feed"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+
+  const db = firebase.database();
+  let allData = {};
+  let hiddenHistoryIds = new Set();
+  let isArchiveVisible = false;
+  let reviewingId = null;
+
+  document.getElementById('date-display').innerText = "● " + new Date().toLocaleDateString();
+
+  db.ref("pickups").on("value", snapshot => {
+    allData = snapshot.val() || {};
+    renderAll();
+  });
+
+  function wipeHistory() {
+    Object.entries(allData).forEach(([id, p]) => { if (p.status === 'completed') hiddenHistoryIds.add(id); });
+    isArchiveVisible = false;
+    reviewingId = null;
+    renderAll();
+  }
+
+  function restoreHistory() {
+    isArchiveVisible = true;
+    renderAll();
+  }
+
+  function toggleDetails(id) {
+    const el = document.getElementById('details-' + id);
+    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+  }
+
+  function setReview(id) {
+    reviewingId = id;
+    renderAll();
+    document.getElementById('live-feed').scrollTop = 0;
+  }
+
+  function renderAll() {
+    const liveFeed = document.getElementById("live-feed");
+    const historyLog = document.getElementById("history-log");
+    const recentLog = document.getElementById("recent-log");
+    
+    liveFeed.innerHTML = "";
+    historyLog.innerHTML = "";
+    recentLog.innerHTML = "";
+    
+    const todayStr = new Date().toDateString();
+    const entries = Object.entries(allData).sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+    entries.forEach(([id, p]) => {
+      const isDone = p.status === 'completed';
+      const jobDate = new Date(p.timestamp).toDateString();
+      const timeStr = new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const fullDateStr = new Date(p.timestamp).toLocaleDateString([], { month: 'numeric', day: 'numeric' });
+
+      if (isDone && jobDate === todayStr) {
+        const item = document.createElement("div");
+        item.className = "history-item";
+        item.innerHTML = `<strong>${p.pickup_location ? p.pickup_location.split(',')[0] : 'N/A'}</strong>`;
+        item.onclick = () => setReview(id);
+        (hiddenHistoryIds.has(id) ? historyLog : recentLog).appendChild(item);
+      }
+
+      if (!isDone || id === reviewingId) {
+        const isReview = (id === reviewingId && isDone);
+        
+        let dimString = "";
+        if (p.dimensions && typeof p.dimensions === 'object') {
+          const { length: l, width: w, height: h } = p.dimensions;
+          if (l !== "N/A" && w !== "N/A" && h !== "N/A") {
+            dimString = ` (${l}x${w}x${h})`;
+          }
+        }
+        const packageDisplay = (p.package_type || "Package") + dimString;
+
+        const card = document.createElement("div");
+        card.className = `active-card ${isReview ? 'reviewing' : ''}`;
+        card.innerHTML = `
+          <div class="card-time">${fullDateStr} | ${timeStr}</div>
+          ${isReview ? '<div style="background:var(--review-blue); color:white; font-size:10px; font-weight:900; padding:4px 8px; border-radius:4px; margin-bottom:10px; align-self:start;">ARCHIVED VIEW</div>' : ''}
+          
+          <div class="card-label">Pickup From</div>
+          <div class="card-value">${p.pickup_location || 'N/A'}</div>
+          
+          <div class="card-label">Going To</div>
+          <div class="dest-value">${p.destination || 'N/A'}</div>
+          
+          <div class="meta-row">
+            <div class="meta-item">
+              <div class="meta-label">Package / Dimensions</div>
+              <div class="meta-val" style="color: var(--accent); font-size: 18px;">${packageDisplay}</div>
+            </div>
+            <div class="meta-item" style="text-align:right;">
+              <div class="meta-label">Phone</div>
+              <div class="meta-val">${p.phone || 'N/A'}</div>
+            </div>
+          </div>
+
+          <div class="details-box" id="details-${id}" style="display: ${isReview ? 'block' : 'none'}">
+            <div style="margin-bottom:10px;"><div class="meta-label">Contact Name</div><div class="meta-val">${p.name || 'N/A'}</div></div>
+            <div><div class="meta-label">PO / Reference #</div><div class="meta-val">${p.po_number || 'N/A'}</div></div>
+          </div>
+
+          ${isReview ? 
+            `<button class="close-review-btn" onclick="reviewingId=null; renderAll();">Close Review</button>` :
+            `<div class="btn-group">
+                <button class="info-toggle-btn" onclick="toggleDetails('${id}')">Full Info</button>
+                <button class="complete-btn" onclick="markDone('${id}')">Complete</button>
+             </div>`
+          }
+        `;
+        liveFeed.appendChild(card);
+      }
+    });
+
+    document.getElementById("archive-list-container").style.display = isArchiveVisible ? "block" : "none";
+  }
+
+  function markDone(id) {
+    db.ref("pickups").child(id).update({ status: 'completed' });
+  }
+</script>
+</body>
+</html>
