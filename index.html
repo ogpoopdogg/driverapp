@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E&C Driver Dispatch</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --card-bg: #252525;
+  }
+  body { 
+    font-family: system-ui, sans-serif; 
+    background: #121212; 
+    color: #eee; 
+    margin: 0; 
+    padding: 15px; 
+  }
+  h1 { text-align: center; color: var(--accent); font-size: 24px; }
+  
+  #driverList { max-width: 600px; margin: 0 auto; }
+
+  .pickup-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 6px solid var(--accent);
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .status-badge {
+    background: var(--accent);
+    color: #000;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
+
+  .info-group { margin-bottom: 15px; }
+  .label { color: #888; font-size: 12px; text-transform: uppercase; font-weight: bold; }
+  .value { font-size: 16px; margin-top: 2px; display: block; }
+  
+  .dim-tag {
+    background: #444;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-right: 5px;
+  }
+
+  .complete-btn {
+    width: 100%;
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  /* Notification Sound Button - Browsers require a click to allow sound */
+  #enableSound {
+    display: block;
+    width: 100%;
+    background: #444;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+  <h1>E&C Driver Feed</h1>
+  
+  <button id="enableSound">🔊 Tap to Enable Alert Sound</button>
+
+  <div id="driverList">Connecting to live feed...</div>
+
+  <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+      authDomain: "eandccourier-36fcc.firebaseapp.com",
+      databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+      projectId: "eandccourier-36fcc"
+    });
+
+    const db = firebase.database();
+    const listDiv = document.getElementById("driverList");
+    const sound = document.getElementById("alertSound");
+    const soundBtn = document.getElementById("enableSound");
+
+    let isInitialLoad = true;
+    let soundEnabled = false;
+
+    // Unlock audio on first tap (Browser requirement)
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = true;
+      soundBtn.style.display = 'none';
+      // Play and immediately pause to "prime" the audio
+      sound.play().then(() => { sound.pause(); sound.currentTime = 0; });
+    });
+
+    // Real-time listener
+    db.ref("pickups").on("value", (snapshot) => {
+      const data = snapshot.val();
+      
+      // Play sound if a new item arrives (and it's not the first load)
+      if (!isInitialLoad && soundEnabled) {
+        sound.play();
+      }
+      isInitialLoad = false;
+
+      listDiv.innerHTML = "";
+      if (!data) {
+        listDiv.innerHTML = "<p style='text-align:center;'>No active pickups found.</p>";
+        return;
+      }
+
+      // Reverse entries to show newest on top
+      const entries = Object.entries(data).reverse();
+
+      entries.forEach(([id, pickup]) => {
+        const card = document.createElement("div");
+        card.className = "pickup-card";
+        
+        // Safety check for dimensions
+        const dims = pickup.dimensions || { length: 'N/A', width: 'N/A', height: 'N/A' };
+
+        card.innerHTML = `
+          <div class="status-badge">New Pickup</div>
+          
+          <div class="info-group">
+            <span class="label">Pickup Location</span>
+            <span class="value">${pickup.pickup_location}</span>
+          </div>
+
+          <div class="info-group">
+            <span class="label">Destination</span>
+            <span class="value">${pickup.destination}</span>
+          </div>
+
+          <div class="info-group">
+            <span class="label">Package Info</span>
+            <span class="value">
+              <strong>${pickup.package_type}</strong> | 
+              <span class="dim-tag">${dims.length}L</span>
+              <span class="dim-tag">${dims.width}W</span>
+              <span class="dim-tag">${dims.height}H</span>
+            </span>
+          </div>
+
+          <div class="info-group">
+            <span class="label">Contact</span>
+            <span class="value">${pickup.name} (${pickup.phone})</span>
+          </div>
+
+          <div class="info-group">
+            <span class="label">PO Number / Notes</span>
+            <span class="value">${pickup.po_number || 'None'} - ${pickup.other_info || ''}</span>
+          </div>
+
+          <button class="complete-btn" onclick="markDone('${id}')">MARK AS COMPLETED</button>
+        `;
+        listDiv.appendChild(card);
+      });
+    });
+
+    function markDone(id) {
+      if(confirm("Confirm pickup completion? This will remove it from the board.")) {
+        db.ref("pickups").child(id).remove();
+      }
+    }
+  </script>
+</body>
+</html>
