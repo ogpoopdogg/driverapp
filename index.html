@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>E&C Master Dispatch</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --card-bg: #1e1e1e;
+    --active-green: #4caf50;
+    --review-blue: #2196f3;
+  }
+  * { box-sizing: border-box; }
+  body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background: #0b0b0b; color: #eee; margin: 0; 
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  
+  header { 
+    padding: 10px 15px; background: #000; border-bottom: 2px solid var(--accent); 
+    display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+  }
+  h1 { margin: 0; color: var(--accent); font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+
+  #main-container { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR: Shrinks significantly on mobile to give room to jobs */
+  #history-sidebar { 
+    width: 220px; border-right: 1px solid #333; overflow-y: auto; 
+    background: #111; padding: 10px; flex-shrink: 0; transition: width 0.3s;
+  }
+  
+  @media (max-width: 600px) {
+    #history-sidebar { width: 100px; padding: 5px; }
+    .section-label { font-size: 8px !important; }
+    .history-item { padding: 6px !important; font-size: 9px !important; }
+    .history-item span { display: none; } /* Hide destination on mobile sidebar to save space */
+  }
+
+  .section-label {
+    font-size: 9px; font-weight: 800; color: #555; text-transform: uppercase;
+    margin-bottom: 10px; letter-spacing: 1px; display: block;
+  }
+
+  /* LIVE FEED: Becomes 1 column on mobile */
+  #live-feed { 
+    flex: 1; padding: 10px; overflow-y: auto; background: #0b0b0b;
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    align-content: start; gap: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .history-item {
+    background: #1a1a1a; padding: 8px; margin-bottom: 6px; border-radius: 4px;
+    border-left: 3px solid #444; font-size: 11px; cursor: pointer; overflow: hidden;
+  }
+
+  .active-card {
+    background: var(--card-bg); padding: 12px; border-radius: 8px;
+    border: 1px solid #333; display: flex; flex-direction: column;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    width: 100%; /* Ensures it never goes off screen */
+  }
+  .reviewing { border: 2px solid var(--review-blue); }
+
+  .label { color: #666; font-size: 9px; text-transform: uppercase; font-weight: bold; }
+  .value { font-size: 13px; color: #fff; margin: 0 0 8px 0; display: block; word-wrap: break-word; }
+  
+  .loc-highlight { 
+    color: var(--accent); font-weight: 800; font-size: 16px; 
+    margin-bottom: 8px; line-height: 1.2; display: block; 
+    word-wrap: break-word; /* Prevents long addresses from cutting off */
+  }
+
+  .complete-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 6px; font-size: 13px;
+    font-weight: 900; cursor: pointer; text-transform: uppercase;
+    background: var(--active-green); color: white; margin-top: 10px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .close-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 6px; font-size: 13px;
+    font-weight: 900; cursor: pointer; text-transform: uppercase;
+    background: #444; color: white; margin-top: 10px;
+  }
+
+  .info-row { display: flex; gap: 10px; margin-bottom: 5px; }
+  .info-col { flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>E&C DISPATCH</h1>
+  <div style="font-size: 10px; color: var(--active-green); font-weight: bold;">● LIVE</div>
+</header>
+
+<div id="main-container">
+  <div id="history-sidebar">
+    <span class="section-label">History</span>
+    <div id="history-log"></div>
+  </div>
+  
+  <div id="live-feed"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+
+  const db = firebase.database();
+  let allData = {};
+  let reviewingId = null;
+
+  db.ref("pickups").on("value", snapshot => {
+    allData = snapshot.val() || {};
+    renderAll();
+  });
+
+  function renderAll() {
+    const liveFeed = document.getElementById("live-feed");
+    const historyLog = document.getElementById("history-log");
+    liveFeed.innerHTML = "";
+    historyLog.innerHTML = "";
+    
+    const entries = Object.entries(allData).sort((a, b) => b[1].timestamp - a[1].timestamp);
+    let activeCount = 0;
+
+    entries.forEach(([id, p]) => {
+      const isDone = p.status === 'completed';
+
+      if (isDone) {
+        const log = document.createElement("div");
+        log.className = "history-item";
+        log.onclick = () => { reviewingId = id; renderAll(); };
+        log.innerHTML = `<strong>${p.pickup_location.substring(0, 15)}..</strong><span>To: ${p.destination.substring(0, 10)}..</span>`;
+        historyLog.appendChild(log);
+      }
+
+      if (!isDone || id === reviewingId) {
+        activeCount++;
+        const card = document.createElement("div");
+        card.className = `active-card ${id === reviewingId && isDone ? 'reviewing' : ''}`;
+        
+        card.innerHTML = `
+          <span class="label">${id === reviewingId && isDone ? 'Archive View' : 'Pickup'}</span>
+          <div class="loc-highlight">${p.pickup_location}</div>
+          
+          <span class="label">Delivery To</span>
+          <span class="value">${p.destination}</span>
+
+          <div class="info-row">
+            <div class="info-col"><span class="label">Contact</span><span class="value">${p.name}</span></div>
+            <div class="info-col"><span class="label">Phone</span><span class="value">${p.phone}</span></div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-col"><span class="label">Type</span><span class="value">${p.package_type}</span></div>
+            <div class="info-col"><span class="label">PO#</span><span class="value">${p.po_number || 'N/A'}</span></div>
+          </div>
+
+          ${id === reviewingId && isDone ? 
+            `<button class="close-btn" onclick="event.stopPropagation(); reviewingId = null; renderAll();">Close Review</button>` : 
+            `<button class="complete-btn" onclick="markDone('${id}')">Mark Completed</button>`
+          }
+        `;
+        liveFeed.appendChild(card);
+      }
+    });
+
+    if (activeCount === 0) {
+      liveFeed.innerHTML = `<div style="text-align:center; width:100%; padding-top:50px; color:#333; font-size:12px;">AWAITING NEW JOBS...</div>`;
+    }
+  }
+
+  function markDone(id) {
+    db.ref("pickups").child(id).update({ status: 'completed' });
+  }
+</script>
+</body>
+</html>
