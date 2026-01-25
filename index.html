@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E&C Master Dispatch</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --card-bg: #222;
+    --done-bg: #1a1a1a;
+    --done-text: #666;
+    --active-green: #4caf50;
+  }
+  body { 
+    font-family: system-ui, sans-serif; 
+    background: #121212; 
+    color: #eee; 
+    margin: 0; 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+  }
+  
+  header { 
+    padding: 15px; 
+    background: #000; 
+    border-bottom: 2px solid var(--accent); 
+    display: flex; 
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  h1 { margin: 0; color: var(--accent); font-size: 18px; letter-spacing: 1px; }
+
+  #main-container { display: flex; flex: 1; overflow: hidden; }
+
+  #list-sidebar { 
+    width: 350px; 
+    border-right: 1px solid #333; 
+    overflow-y: auto; 
+    background: #181818; 
+    padding: 10px; 
+  }
+
+  .sidebar-section-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #555;
+    text-transform: uppercase;
+    margin: 20px 0 10px 5px;
+    letter-spacing: 1.5px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  #details-pane { 
+    flex: 1; 
+    padding: 30px; 
+    overflow-y: auto; 
+    background: #121212; 
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pickup-item {
+    background: var(--card-bg);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    border-left: 5px solid var(--accent);
+    transition: 0.2s;
+  }
+
+  /* Styling for completed items in the sidebar list */
+  .pickup-item.completed {
+    border-left: 5px solid var(--done-text);
+    background: var(--done-bg);
+    opacity: 0.6;
+  }
+  .pickup-item.completed .item-loc { color: var(--done-text); text-decoration: line-through; }
+
+  .item-loc { font-weight: bold; color: var(--accent); display: block; font-size: 16px; }
+  .item-dest { font-size: 12px; color: #888; margin-top: 4px; display: block; }
+
+  .monitor-view { text-align: center; color: #444; }
+  .pulse-dot {
+    height: 12px; width: 12px;
+    background-color: var(--active-green);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    box-shadow: 0 0 8px var(--active-green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .monitor-text { font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #333; }
+
+  .detail-card {
+    width: 100%;
+    max-width: 600px;
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    border: 1px solid #333;
+    height: fit-content;
+  }
+
+  .label { color: #666; font-size: 11px; text-transform: uppercase; font-weight: bold; }
+  .value { font-size: 22px; color: #fff; margin: 5px 0 20px 0; display: block; font-weight: 500; }
+  .highlight { color: var(--accent); font-weight: 900; font-size: 32px; }
+
+  .status-btn {
+    width: 100%;
+    padding: 22px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 10px;
+    text-transform: uppercase;
+  }
+
+  .btn-complete { background: var(--active-green); color: white; }
+  .btn-undo { background: #444; color: white; }
+
+  @media (max-width: 768px) {
+    #main-container { flex-direction: column; }
+    #list-sidebar { width: 100%; height: 40%; border-right: none; border-bottom: 2px solid #333; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>E&C DISPATCH SYSTEM</h1>
+  <div id="counter" style="font-size: 12px; color: #444;">Network Live</div>
+</header>
+
+<div id="main-container">
+  <div id="list-sidebar">
+    <div class="sidebar-section-title">Active <span id="active-count">0</span></div>
+    <div id="active-list"></div>
+    
+    <div class="sidebar-section-title">Completed Today <span id="done-count">0</span></div>
+    <div id="completed-list"></div>
+  </div>
+  
+  <div id="details-pane">
+    <div id="detail-view" style="width:100%;">
+        <div class="monitor-view">
+            <div class="pulse-dot"></div>
+            <span class="monitor-text">System Live // Awaiting New Jobs</span>
+        </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+
+  const db = firebase.database();
+  const MONITOR_STATE = `
+    <div class="monitor-view">
+        <div class="pulse-dot"></div>
+        <span class="monitor-text">System Live // Awaiting New Jobs</span>
+    </div>`;
+
+  let allData = {};
+
+  db.ref("pickups").on("value", snapshot => {
+    allData = snapshot.val() || {};
+    renderSidebar();
+  });
+
+  function renderSidebar() {
+    const activeList = document.getElementById("active-list");
+    const completedList = document.getElementById("completed-list");
+    
+    activeList.innerHTML = "";
+    completedList.innerHTML = "";
+    
+    const entries = Object.entries(allData);
+    let activeCount = 0;
+    let doneCount = 0;
+
+    entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+    entries.forEach(([id, p]) => {
+      const isDone = p.status === 'completed';
+      const div = document.createElement("div");
+      div.className = `pickup-item ${isDone ? 'completed' : ''}`;
+      div.onclick = () => showDetail(id);
+      div.innerHTML = `
+        <span class="item-loc">${p.pickup_location}</span>
+        <span class="item-dest">To: ${p.destination}</span>
+      `;
+
+      if (isDone) {
+        completedList.appendChild(div);
+        doneCount++;
+      } else {
+        activeList.appendChild(div);
+        activeCount++;
+      }
+    });
+
+    document.getElementById("active-count").innerText = activeCount;
+    document.getElementById("done-count").innerText = doneCount;
+  }
+
+  function showDetail(id) {
+    const p = allData[id];
+    if (!p) return;
+    const isDone = p.status === 'completed';
+    const view = document.getElementById("detail-view");
+    document.getElementById('details-pane').style.alignItems = "start";
+
+    view.innerHTML = `
+      <div class="detail-card" style="margin: 0 auto;">
+        <span class="label">Pickup Location</span>
+        <span class="value highlight">${p.pickup_location}</span>
+
+        <span class="label">Delivery Destination</span>
+        <span class="value">${p.destination}</span>
+
+        <div style="display:flex; gap:20px;">
+          <div style="flex:1;"><span class="label">Type</span><span class="value">${p.package_type}</span></div>
+          <div style="flex:1;"><span class="label">Dimensions</span><span class="value">${p.dimensions.length}x${p.dimensions.width}</span></div>
+        </div>
+
+        <span class="label">Contact</span>
+        <span class="value">${p.name} | ${p.phone}</span>
+
+        <span class="label">PO / Billing</span>
+        <span class="value">${p.po_number || 'N/A'}</span>
+
+        <span class="label">Instructions</span>
+        <span class="value" style="font-size:16px;">${p.other_info || 'None'}</span>
+
+        <button class="status-btn ${isDone ? 'btn-undo' : 'btn-complete'}" 
+                onclick="updateStatus('${id}', '${p.status}')">
+          ${isDone ? 'Re-Activate Job' : 'Mark as Job Completed'}
+        </button>
+      </div>
+    `;
+  }
+
+  function updateStatus(id, current) {
+    const nextStatus = (current === 'completed') ? 'active' : 'completed';
+    
+    db.ref("pickups").child(id).update({ status: nextStatus }).then(() => {
+      // Clear the big screen only when MARKING COMPLETED
+      if (nextStatus === 'completed') {
+        document.getElementById('details-pane').style.alignItems = "center";
+        document.getElementById("detail-view").innerHTML = MONITOR_STATE;
+      }
+    });
+  }
+</script>
+</body>
+</html>
