@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E&C Master Dispatch</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --card-bg: #222;
+    --done-bg: #1a1a1a;
+    --done-text: #666;
+    --active-green: #4caf50;
+  }
+  body { 
+    font-family: system-ui, sans-serif; 
+    background: #121212; 
+    color: #eee; 
+    margin: 0; 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+  }
+  
+  header { 
+    padding: 15px; 
+    background: #000; 
+    border-bottom: 2px solid var(--accent); 
+    display: flex; 
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  h1 { margin: 0; color: var(--accent); font-size: 18px; }
+
+  #main-container { display: flex; flex: 1; overflow: hidden; }
+
+  #list-sidebar { 
+    width: 350px; 
+    border-right: 1px solid #333; 
+    overflow-y: auto; 
+    background: #181818; 
+    padding: 10px; 
+  }
+
+  .sidebar-section-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+    margin: 15px 0 10px 5px;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  #details-pane { 
+    flex: 1; 
+    padding: 30px; 
+    overflow-y: auto; 
+    background: #121212; 
+    display: flex; 
+    justify-content: center;
+  }
+
+  .pickup-item {
+    background: var(--card-bg);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    border-left: 5px solid var(--accent);
+    transition: 0.2s;
+  }
+
+  .pickup-item.completed {
+    border-left: 5px solid var(--done-text);
+    background: var(--done-bg);
+    opacity: 0.7;
+  }
+  .pickup-item.completed .item-loc { color: var(--done-text); text-decoration: line-through; }
+
+  .item-loc { font-weight: bold; color: var(--accent); display: block; font-size: 16px; }
+  .item-dest { font-size: 13px; color: #ccc; margin-top: 4px; display: block; }
+
+  .detail-card {
+    width: 100%;
+    max-width: 600px;
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    border: 1px solid #333;
+    height: fit-content;
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .label { color: #888; font-size: 11px; text-transform: uppercase; font-weight: bold; }
+  .value { font-size: 22px; color: #fff; margin: 5px 0 20px 0; display: block; }
+  .highlight { color: var(--accent); font-weight: 900; font-size: 28px; }
+
+  .status-btn {
+    width: 100%;
+    padding: 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    text-transform: uppercase;
+  }
+
+  .btn-complete { background: var(--active-green); color: white; }
+  .btn-undo { background: #444; color: white; }
+
+  @media (max-width: 768px) {
+    #main-container { flex-direction: column; }
+    #list-sidebar { width: 100%; height: 40%; border-right: none; border-bottom: 2px solid #333; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>E&C MASTER DISPATCH</h1>
+  <div id="counter" style="font-size: 12px; color: #888;">0 Total Jobs</div>
+</header>
+
+<div id="main-container">
+  <div id="list-sidebar">
+    <div class="sidebar-section-title">Active Pickups <span id="active-count" style="color:var(--accent)">0</span></div>
+    <div id="active-list"></div>
+    
+    <div class="sidebar-section-title" style="margin-top:30px;">Completed History <span id="done-count" style="color:var(--active-green)">0</span></div>
+    <div id="completed-list"></div>
+  </div>
+  
+  <div id="details-pane">
+    <div id="detail-view">
+      <p style="color:#555; text-align:center; margin-top:100px;">Select a job from the list to view all data</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+
+  const db = firebase.database();
+  let allData = {};
+  let currentSelectedId = null;
+
+  db.ref("pickups").on("value", snapshot => {
+    allData = snapshot.val() || {};
+    renderSidebar();
+    
+    // If the currently viewed job was just completed by someone else, clear the screen
+    if (currentSelectedId && allData[currentSelectedId] && allData[currentSelectedId].status === 'completed') {
+        // We only clear if the button was just pressed. 
+        // If we want to keep it on screen even after completion, we can remove this.
+    }
+  });
+
+  function renderSidebar() {
+    const activeList = document.getElementById("active-list");
+    const completedList = document.getElementById("completed-list");
+    const totalCounter = document.getElementById("counter");
+    
+    activeList.innerHTML = "";
+    completedList.innerHTML = "";
+    
+    const entries = Object.entries(allData);
+    totalCounter.innerText = entries.length + " Total Jobs";
+
+    let activeCount = 0;
+    let doneCount = 0;
+
+    entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+    entries.forEach(([id, p]) => {
+      const isDone = p.status === 'completed';
+      const div = document.createElement("div");
+      div.className = `pickup-item ${isDone ? 'completed' : ''}`;
+      div.onclick = () => showDetail(id);
+      div.innerHTML = `
+        <span class="item-loc">${p.pickup_location}</span>
+        <span class="item-dest">To: ${p.destination}</span>
+      `;
+
+      if (isDone) {
+        completedList.appendChild(div);
+        doneCount++;
+      } else {
+        activeList.appendChild(div);
+        activeCount++;
+      }
+    });
+
+    document.getElementById("active-count").innerText = activeCount;
+    document.getElementById("done-count").innerText = doneCount;
+  }
+
+  function showDetail(id) {
+    currentSelectedId = id;
+    const p = allData[id];
+    const isDone = p.status === 'completed';
+    const view = document.getElementById("detail-view");
+
+    view.innerHTML = `
+      <div class="detail-card">
+        <span class="label">Pickup Location</span>
+        <span class="value highlight">${p.pickup_location}</span>
+
+        <span class="label">Delivery Destination</span>
+        <span class="value">${p.destination}</span>
+
+        <div style="display:flex; gap:20px;">
+          <div style="flex:1;"><span class="label">Type</span><span class="value">${p.package_type}</span></div>
+          <div style="flex:1;"><span class="label">Dimensions</span><span class="value">${p.dimensions.length}x${p.dimensions.width}x${p.dimensions.height}</span></div>
+        </div>
+
+        <span class="label">Contact Info</span>
+        <span class="value">${p.name} <br> ${p.phone}</span>
+
+        <span class="label">PO / Reference Number</span>
+        <span class="value">${p.po_number || 'N/A'}</span>
+
+        <span class="label">Additional Notes</span>
+        <span class="value" style="font-size:16px;">${p.other_info || 'No extra notes provided.'}</span>
+
+        <button class="status-btn ${isDone ? 'btn-undo' : 'btn-complete'}" onclick="toggleStatus('${id}', '${p.status}')">
+          ${isDone ? 'Move back to Active' : 'Mark as Job Completed'}
+        </button>
+      </div>
+    `;
+  }
+
+  function toggleStatus(id, current) {
+    const nextStatus = (current === 'completed') ? 'active' : 'completed';
+    
+    db.ref("pickups").child(id).update({ status: nextStatus }).then(() => {
+        // Only clear the detail view if we are MARKING IT COMPLETE
+        if (nextStatus === 'completed') {
+            document.getElementById("detail-view").innerHTML = `
+                <p style="color:#28a745; text-align:center; margin-top:100px;">✅ Job Completed and Moved to History.</p>
+            `;
+            currentSelectedId = null;
+        }
+    });
+  }
+</script>
+</body>
+</html>
