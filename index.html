@@ -1,0 +1,125 @@
+<div id="history-sidebar">
+    <span class="section-label">History Management</span>
+    <div class="history-controls">
+        <button class="ctrl-btn btn-clear" onclick="clearExistingHistory()">Clear</button>
+        <button class="ctrl-btn btn-restore" onclick="restoreHistory()">Restore</button>
+    </div>
+    
+    <div id="recent-log-container" style="display:none; margin-bottom: 20px;">
+        <span class="section-label" style="color: var(--active-green);">New Completes</span>
+        <div id="recent-log"></div>
+    </div>
+
+    <span class="section-label">Archived Log</span>
+    <div id="history-log"></div>
+</div>
+
+<script>
+  // ... (Firebase init remains the same) ...
+
+  const db = firebase.database();
+  let allData = {};
+  let reviewingId = null;
+  
+  // Tracking which IDs we have manually "muted/cleared"
+  let clearedIds = new Set(); 
+
+  db.ref("pickups").on("value", snapshot => {
+    allData = snapshot.val() || {};
+    renderAll();
+  });
+
+  // Captures all currently completed IDs and hides them
+  function clearExistingHistory() {
+    clearedIds.clear();
+    Object.entries(allData).forEach(([id, p]) => {
+      if (p.status === 'completed') {
+        clearedIds.add(id);
+      }
+    });
+    renderAll();
+  }
+
+  // Brings everything back
+  function restoreHistory() {
+    clearedIds.clear();
+    renderAll();
+  }
+
+  function renderAll() {
+    const liveFeed = document.getElementById("live-feed");
+    const historyLog = document.getElementById("history-log");
+    const recentLog = document.getElementById("recent-log");
+    const recentContainer = document.getElementById("recent-log-container");
+
+    liveFeed.innerHTML = "";
+    historyLog.innerHTML = "";
+    recentLog.innerHTML = "";
+    
+    const todayStr = new Date().toDateString();
+    const entries = Object.entries(allData).sort((a, b) => b[1].timestamp - a[1].timestamp);
+    
+    let activeCount = 0;
+    let hasRecent = false;
+
+    entries.forEach(([id, p]) => {
+      const isDone = p.status === 'completed';
+      const jobDate = new Date(p.timestamp).toDateString();
+
+      // Skip old history from previous days
+      if (isDone && jobDate !== todayStr) return; 
+
+      if (isDone) {
+        const logItem = document.createElement("div");
+        logItem.className = "history-item";
+        logItem.onclick = () => { reviewingId = id; renderAll(); };
+        logItem.innerHTML = `<strong>${p.pickup_location}</strong>`;
+
+        if (clearedIds.has(id)) {
+          // It's part of the "Cleared" batch
+          historyLog.appendChild(logItem);
+        } else {
+          // It's a NEW completion since the last clear
+          recentLog.appendChild(logItem);
+          hasRecent = true;
+        }
+      }
+
+      // Main Wall Logic
+      if (!isDone || id === reviewingId) {
+        activeCount++;
+        const card = document.createElement("div");
+        card.className = `active-card ${id === reviewingId && isDone ? 'reviewing' : ''}`;
+        card.innerHTML = `
+          <span class="label">${id === reviewingId && isDone ? 'Archived View' : 'Pickup From'}</span>
+          <div class="loc-highlight">${p.pickup_location}</div>
+          <span class="label">Destination</span><span class="value">${p.destination}</span>
+          <div class="info-row">
+            <div class="info-col"><span class="label">Contact</span><span class="value">${p.name}</span></div>
+            <div class="info-col"><span class="label">Phone</span><span class="value">${p.phone}</span></div>
+          </div>
+          <div class="info-row">
+            <div class="info-col"><span class="label">Package</span><span class="value">${p.package_type}</span></div>
+            <div class="info-col"><span class="label">PO#</span><span class="value">${p.po_number || 'N/A'}</span></div>
+          </div>
+          ${id === reviewingId && isDone ? 
+            `<button class="close-btn" onclick="event.stopPropagation(); reviewingId = null; renderAll();">Close Review</button>` : 
+            `<button class="complete-btn" onclick="markDone('${id}')">Complete</button>`
+          }
+        `;
+        liveFeed.appendChild(card);
+      }
+    });
+
+    // Toggle visibility of the "New Completes" section
+    recentContainer.style.display = hasRecent ? "block" : "none";
+
+    if (activeCount === 0) {
+      liveFeed.innerHTML = `<div style="text-align:center; width:100%; padding-top:50px; color:#444; font-size:12px; letter-spacing:2px;">ALL JOBS COMPLETED // AWAITING DISPATCH</div>`;
+    }
+  }
+
+  function markDone(id) {
+    db.ref("pickups").child(id).update({ status: 'completed' });
+  }
+</script>
