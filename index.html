@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>E&C Dispatch | Smart Board</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --queue-orange: #ff9800;
+    --card-bg: #1a1a1a;
+    --active-green: #4caf50;
+    --review-blue: #2196f3;
+    --danger-red: #f44336;
+    --text-main: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  
+  html, body { 
+    height: 100%; width: 100%; margin: 0; padding: 0; 
+    overflow: hidden; background: #000;
+  }
+
+  body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
+  
+  header { 
+    padding: 8px 15px; background: #000; border-bottom: 3px solid var(--accent); 
+    display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+  }
+  h1 { margin: 0; color: var(--accent); font-size: 18px; letter-spacing: 1px; font-weight: 900; }
+
+  #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
+
+  #history-sidebar { 
+    width: 135px; 
+    border-right: 2px solid #333; 
+    overflow-y: auto; 
+    background: #0d0d0d; padding: 5px; flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  #live-feed { 
+    flex: 1; padding: 10px; overflow-y: auto; 
+    display: flex; flex-direction: column; gap: 12px;
+    height: 100%; -webkit-overflow-scrolling: touch;
+  }
+
+  .section-label {
+    font-size: 13px; font-weight: 900; text-transform: uppercase;
+    margin-top: 18px; margin-bottom: 8px; display: block;
+    letter-spacing: 1px; padding-bottom: 4px;
+    border-bottom: 2px solid #333;
+  }
+
+  .history-item {
+    background: #151515; padding: 8px; margin-bottom: 10px; border-radius: 4px;
+    border-left: 4px solid #333; font-size: 16px; cursor: pointer; color: var(--text-main);
+    word-wrap: break-word; line-height: 1.1;
+    position: relative;
+    overflow: hidden; /* Needed for the shine effect */
+  }
+  .history-city { font-size: 11px; color: #666; display: block; text-transform: uppercase; margin-top: 2px; }
+  
+  .queue-text { color: var(--queue-orange) !important; font-size: 10px; margin-top: 3px; font-weight: bold; }
+  .done-text { color: var(--active-green) !important; font-size: 10px; margin-top: 3px; font-weight: bold; }
+
+  .history-controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .ctrl-btn {
+    width: 100%; padding: 14px 2px; border: 1px solid #333; border-radius: 4px;
+    font-size: 11px; font-weight: 900; cursor: pointer; background: #111; 
+    text-transform: uppercase;
+  }
+
+  /* MAIN CARD ANIMATIONS */
+  .active-card {
+    position: relative; background: var(--card-bg); padding: 12px; 
+    border-radius: 8px; border: 1px solid #333; width: 100%; flex-shrink: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-complete-anim {
+    transform: translateX(-100px) scale(0.5);
+    opacity: 0;
+    margin-bottom: -150px;
+    pointer-events: none;
+  }
+
+  /* ENHANCED SIDEBAR "POP & SHINE" ANIMATION */
+  @keyframes archive-pop-shine {
+    0% { transform: scale(0.8); background: #333; }
+    40% { transform: scale(1.15); background: var(--active-green); box-shadow: 0 0 20px var(--active-green); }
+    100% { transform: scale(1); background: #151515; box-shadow: none; }
+  }
+
+  @keyframes shine-sweep {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  .sidebar-new-entry {
+    animation: archive-pop-shine 0.8s ease-out forwards;
+    z-index: 10;
+  }
+
+  /* The visual "shine" layer */
+  .sidebar-new-entry::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.5), transparent);
+    transform: skewX(-25deg);
+    animation: shine-sweep 0.6s ease-in-out forwards;
+  }
+  
+  /* TYPOGRAPHY */
+  .card-time-header {
+    font-size: 15px; font-weight: 900; color: var(--accent);
+    margin-bottom: 6px; display: block;
+  }
+
+  .card-label { color: var(--accent); font-size: 10px; font-weight: 900; text-transform: uppercase; }
+  .card-value { font-size: 22px; font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 8px; text-transform: uppercase; }
+  .dest-value { font-size: 16px; font-weight: 700; color: #bbb; margin-bottom: 8px; }
+  
+  .meta-row { display: flex; justify-content: space-between; border-top: 1px solid #222; padding-top: 8px; margin-top: 4px; }
+  .meta-label { font-size: 9px; color: #666; font-weight: 800; text-transform: uppercase; }
+  .meta-val { font-size: 16px; color: #fff; font-weight: 600; }
+
+  /* INFO BOX */
+  .details-box {
+    background: #000; padding: 12px; border-radius: 4px; margin-top: 10px;
+    border-left: 4px solid var(--review-blue); font-size: 14px;
+    color: #eee;
+  }
+  .detail-row { margin-bottom: 6px; }
+
+  .btn-group { display: flex; gap: 10px; margin-top: 12px; width: 100%; }
+  .action-btn {
+    flex: 1; padding: 16px 10px; border: none; border-radius: 4px;
+    color: #fff; font-weight: 800; cursor: pointer; font-size: 13px; text-transform: uppercase;
+  }
+  .bg-dark { background: #333; }
+  .bg-green { background: var(--active-green); }
+  .bg-red { background: var(--danger-red); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>E&C DISPATCH LIVE</h1>
+  <div id="date-display" style="font-size: 12px; color: var(--active-green); font-weight: 900;"></div>
+</header>
+
+<div id="main-container">
+  <div id="history-sidebar">
+    <div class="history-controls">
+        <button class="ctrl-btn" style="color: var(--danger-red);" onclick="wipeHistory()">Clear</button>
+        <button class="ctrl-btn" style="color: var(--review-blue);" onclick="restoreHistory()">Restore</button>
+    </div>
+    
+    <div id="queue-container">
+        <span class="section-label" style="color:var(--queue-orange)">Dispatch Queue</span>
+        <div id="queue-log"></div>
+    </div>
+
+    <div id="recent-container">
+        <span class="section-label" style="color:var(--active-green)">Done Today</span>
+        <div id="recent-log"></div>
+    </div>
+
+    <div id="archive-list-container" style="display:none; opacity: 0.6;">
+        <span class="section-label" style="color:#888">Archived</span>
+        <div id="history-log"></div>
+    </div>
+  </div>
+  
+  <div id="live-feed"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+
+  const db = firebase.database();
+  let allData = {};
+  let hiddenHistoryIds = new Set();
+  let processedSidebarIds = new Set();
+  let isArchiveVisible = false;
+  let reviewingId = null;
+
+  document.getElementById('date-display').innerText = "● " + new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  db.ref("pickups").on("value", snapshot => {
+    allData = snapshot.val() || {};
+    renderAll();
+  });
+
+  function wipeHistory() {
+    Object.entries(allData).forEach(([id, p]) => { if (p.status === 'completed') hiddenHistoryIds.add(id); });
+    isArchiveVisible = false;
+    reviewingId = null;
+    renderAll();
+  }
+
+  function restoreHistory() {
+    isArchiveVisible = !isArchiveVisible;
+    renderAll();
+  }
+
+  function markActive(id) {
+    db.ref("pickups").child(id).update({ status: 'pending' });
+    reviewingId = null;
+  }
+
+  function toggleDetails(id) {
+    const el = document.getElementById('details-' + id);
+    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+  }
+
+  function setReview(id) {
+    reviewingId = id;
+    renderAll();
+    document.getElementById('live-feed').scrollTop = 0;
+  }
+
+  function markDone(id) {
+    const card = document.getElementById('card-' + id);
+    if(card) {
+        card.classList.add('card-complete-anim');
+        setTimeout(() => {
+            db.ref("pickups").child(id).update({ status: 'completed' });
+        }, 500);
+    } else {
+        db.ref("pickups").child(id).update({ status: 'completed' });
+    }
+  }
+
+  function renderAll() {
+    const liveFeed = document.getElementById("live-feed");
+    const historyLog = document.getElementById("history-log");
+    const recentLog = document.getElementById("recent-log");
+    const queueLog = document.getElementById("queue-log");
+    
+    liveFeed.innerHTML = "";
+    historyLog.innerHTML = "";
+    recentLog.innerHTML = "";
+    queueLog.innerHTML = "";
+    
+    const todayStr = new Date().toDateString();
+    const entries = Object.entries(allData).sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+    entries.forEach(([id, p]) => {
+      const isDone = p.status === 'completed';
+      const jobDate = new Date(p.timestamp).toDateString();
+      const timeStr = new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateStr = new Date(p.timestamp).toLocaleDateString([], { day: 'numeric', month: 'short' });
+
+      const addrParts = p.pickup_location ? p.pickup_location.split(',') : ['N/A'];
+      const item = document.createElement("div");
+      item.className = "history-item";
+      
+      if (isDone) {
+        item.innerHTML = `<strong>${addrParts[0]}</strong><span class="history-city">${addrParts[1] || ''}</span><div class="done-text">${dateStr} @ ${timeStr}</div>`;
+        item.onclick = () => setReview(id);
+        
+        // Trigger Pop & Shine for new entries
+        if (!processedSidebarIds.has(id)) {
+            item.classList.add('sidebar-new-entry');
+            processedSidebarIds.add(id);
+        }
+
+        if (jobDate === todayStr) {
+            (hiddenHistoryIds.has(id) ? historyLog : recentLog).appendChild(item);
+        }
+      } else {
+        item.innerHTML = `<strong>${addrParts[0]}</strong><span class="history-city">${addrParts[1] || ''}</span><div class="queue-text">${dateStr} @ ${timeStr}</div>`;
+        item.onclick = () => setReview(id);
+        queueLog.appendChild(item);
+      }
+
+      if (!isDone || id === reviewingId) {
+        const isReview = (id === reviewingId && isDone);
+        let dimString = "";
+        if (p.dimensions && typeof p.dimensions === 'object') {
+          const { length: l, width: w, height: h } = p.dimensions;
+          if (l !== "N/A" && w !== "N/A" && h !== "N/A") dimString = ` (${l}x${w}x${h})`;
+        }
+
+        const card = document.createElement("div");
+        card.className = `active-card`;
+        card.id = 'card-' + id;
+        card.innerHTML = `
+          <div class="card-time-header">${dateStr} @ ${timeStr}</div>
+          <div class="card-label">PICKUP</div>
+          <div class="card-value">${p.pickup_location || 'N/A'}</div>
+          <div class="card-label">DROP</div>
+          <div class="dest-value">${p.destination || 'N/A'}</div>
+          <div class="meta-row">
+            <div style="flex:1"><div class="meta-label">Package</div><div class="meta-val" style="color:var(--accent)">${(p.package_type || "Pkg") + dimString}</div></div>
+          </div>
+          <div class="details-box" id="details-${id}" style="display: ${isReview ? 'block' : 'none'}">
+            <div class="detail-row"><span class="meta-label">Name:</span> ${p.name || 'N/A'}</div>
+            <div class="detail-row"><span class="meta-label">Phone:</span> <span style="color:var(--active-green); font-weight:800;">${p.phone || 'N/A'}</span></div>
+            <div class="detail-row"><span class="meta-label">PO/Ref:</span> ${p.po_number || 'N/A'}</div>
+          </div>
+          <div class="btn-group">
+            <button class="action-btn bg-dark" onclick="${isReview ? 'reviewingId=null; renderAll();' : `toggleDetails('${id}')`}">${isReview ? 'Close View' : 'Info'}</button>
+            ${isReview ? 
+              `<button class="action-btn bg-red" onclick="markActive('${id}')">Restore Active</button>` : 
+              `<button class="action-btn bg-green" onclick="markDone('${id}')">Done</button>`
+            }
+          </div>
+        `;
+        liveFeed.appendChild(card);
+      }
+    });
+
+    document.getElementById("archive-list-container").style.display = isArchiveVisible ? "block" : "none";
+  }
+</script>
+</body>
+</html>
