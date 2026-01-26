@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>E&C Dispatch | Driver Portal</title>
+<style>
+  :root { --accent: #ffcc00; --queue-orange: #ff9800; --card-bg: #1a1a1a; --active-green: #4caf50; --review-blue: #2196f3; --danger-red: #f44336; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; }
+  body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
+  #login-overlay { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+  .login-btn { width: 100%; max-width: 300px; padding: 20px; margin: 10px 0; background: #111; border: 1px solid #333; color: #fff; font-size: 18px; font-weight: 800; border-radius: 8px; text-transform: uppercase; }
+  header { padding: 8px 15px; background: #000; border-bottom: 3px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
+  #history-sidebar { width: 135px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 8px 5px; flex-shrink: 0; }
+  #live-feed { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .history-item { background: #151515; padding: 8px; margin-bottom: 10px; border-radius: 4px; border-left: 4px solid #333; font-size: 13px; color: #fff; }
+  .active-card { background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid #333; }
+  .card-label { color: var(--accent); font-size: 10px; font-weight: 900; }
+  .card-value { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 8px; text-transform: uppercase; }
+  .meta-val { font-size: 15px; color: #fff; font-weight: 600; }
+  .details-box { background: #000; padding: 12px; border-radius: 4px; margin-top: 10px; border-left: 4px solid var(--review-blue); font-size: 14px; color: #eee; }
+  .btn-group { display: flex; gap: 10px; margin-top: 12px; }
+  .action-btn { flex: 1; padding: 16px 10px; border: none; border-radius: 4px; color: #fff; font-weight: 800; text-transform: uppercase; }
+  .bg-dark { background: #333; } .bg-green { background: var(--active-green); } .bg-red { background: var(--danger-red); }
+</style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <button class="login-btn" onclick="loginWithPass('Driver 1 (WPG)', '1111')">WPG Local 1</button>
+    <button class="login-btn" onclick="loginWithPass('Driver 2 (WPG)', '2222')">WPG Local 2</button>
+    <button class="login-btn" onclick="loginWithPass('Cube Truck', '3333')">Cube Truck</button>
+    <button class="login-btn" onclick="loginWithPass('Night Driver', '4444')">Night Driver</button>
+</div>
+
+<header><h1 id="header-name" style="color:var(--accent); font-size: 18px; margin:0;">DRIVER PORTAL</h1></header>
+
+<div id="main-container">
+  <div id="history-sidebar"><div id="queue-log"></div><div id="recent-log"></div></div>
+  <div id="live-feed"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+  const db = firebase.database();
+  let currentDriver = localStorage.getItem('ec_driver_name');
+
+  if(currentDriver) { document.getElementById('login-overlay').style.display = 'none'; document.getElementById('header-name').innerText = currentDriver; }
+
+  function loginWithPass(name, pin) {
+    const input = prompt(`PIN for ${name}:`);
+    if (input === pin) { localStorage.setItem('ec_driver_name', name); location.reload(); }
+  }
+
+  db.ref("pickups").on("value", snapshot => {
+    const data = snapshot.val() || {};
+    const liveFeed = document.getElementById("live-feed");
+    const queueLog = document.getElementById("queue-log");
+    liveFeed.innerHTML = ""; queueLog.innerHTML = "";
+    
+    Object.entries(data).reverse().forEach(([id, p]) => {
+      if (p.assigned_to !== currentDriver || p.status === 'completed') return;
+
+      const card = document.createElement("div"); card.className = "active-card";
+      const dimStr = (p.length && p.length !== "-") ? ` (${p.length}x${p.width}x${p.height})` : "";
+      
+      card.innerHTML = `
+        <div class="card-label">PICKUP</div>
+        <div class="card-value">${p.pickup_location}</div>
+        <div class="card-label">DROP</div>
+        <div class="card-value" style="font-size:16px; color:#bbb;">${p.destination}</div>
+        <div class="meta-val" style="color:var(--accent)">${p.package_type}${dimStr}</div>
+        <div class="details-box">
+            <div>PO: ${p.po_number || '-'}</div>
+            <div style="margin-top:5px; color:var(--accent)">Notes: ${p.other_info || '-'}</div>
+        </div>
+        <div class="btn-group">
+            <button class="action-btn bg-dark" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.pickup_location)}')">NAV</button>
+            <button class="action-btn bg-green" onclick="markDone('${id}')">DONE</button>
+        </div>`;
+      liveFeed.appendChild(card);
+    });
+  });
+
+  function markDone(id) { db.ref("pickups").child(id).update({ status: 'completed' }); }
+</script>
+</body>
+</html>
