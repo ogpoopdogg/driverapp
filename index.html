@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>E&C Dispatch | Driver Portal</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --queue-orange: #ff9800;
+    --card-bg: #1a1a1a;
+    --active-green: #4caf50;
+    --review-blue: #2196f3;
+    --text-main: #ffffff;
+    --danger: #ff4444;
+  }
+  * { box-sizing: border-box; }
+  
+  html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
+  body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
+  
+  /* Header Fix */
+  header { padding: 10px 15px; background: #000; border-bottom: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  h1 { margin: 0; color: var(--accent); font-size: 28px; font-weight: 900; }
+  #clock { font-size: 24px; color: var(--accent); font-weight: bold; }
+
+  #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
+  
+  /* Sidebar Font (Kept at your preferred size) */
+  #history-sidebar { width: 160px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 8px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .section-label { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 10px 0; color: #666; border-bottom: 2px solid #333; }
+  .history-item { background: #151515; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #333; font-size: 16px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  
+  /* Right Side Pro Layout */
+  #live-feed { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+
+  .active-card { 
+    background: var(--card-bg); padding: 12px; border-radius: 12px; 
+    border: 1px solid #444; width: 100%; 
+    display: flex; flex-direction: column;
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  /* Grid for Address vs Specs */
+  .card-main-grid { display: grid; grid-template-columns: 1fr 100px; gap: 10px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+
+  .card-label { color: var(--accent); font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+  .pickup-value { font-size: 32px; font-weight: 900; line-height: 1; color: #fff; text-transform: uppercase; word-break: break-word; }
+  .drop-value { font-size: 22px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; margin-top: 4px; }
+  .city-sub { font-size: 16px; color: var(--accent); font-weight: bold; }
+
+  .specs-column { text-align: right; display: flex; flex-direction: column; justify-content: flex-start; }
+  .tech-info { font-size: 18px; font-weight: 900; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; line-height: 1; }
+
+  /* Centered Time */
+  .job-time-stamp { font-size: 22px; font-weight: 900; color: #444; text-align: center; padding: 8px 0; }
+
+  /* Action Buttons */
+  .card-action-row { display: flex; gap: 10px; }
+  .info-toggle-btn { flex: 0 0 80px; background: transparent; color: var(--review-blue); border: 2px solid #444; padding: 12px 0; font-size: 16px; font-weight: 900; border-radius: 8px; cursor: pointer; text-transform: uppercase; }
+  .done-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 24px; }
+
+  /* Utility */
+  .sidebar-btns { padding-top: 10px; border-top: 1px solid #333; }
+  .util-btn { width: 100%; padding: 12px 5px; font-size: 12px; font-weight: 900; border-radius: 6px; border: 1px solid #444; background: #222; color: #ccc; cursor: pointer; text-transform: uppercase; margin-bottom: 8px; }
+  
+  .details-box { display: none; background: #000; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--review-blue); font-size: 20px; color: #eee; }
+
+  @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  a { text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="header-name">E&C PORTAL</h1>
+  <div id="clock"></div>
+</header>
+
+<div id="main-container">
+  <div id="history-sidebar">
+    <div id="sidebar-content">
+      <span class="section-label" style="color: var(--queue-orange);">Queue</span>
+      <div id="queue-log"></div>
+      <span class="section-label" style="color: var(--active-green);">Done</span>
+      <div id="recent-log"></div>
+    </div>
+    <div class="sidebar-btns">
+      <button class="util-btn" style="color:var(--danger)" onclick="clearOldHistory()">Clear Archive</button>
+      <button class="util-btn" style="color:var(--review-blue)" onclick="restore48h()">Restore 48h</button>
+    </div>
+  </div>
+  <div id="live-feed"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+
+  const db = firebase.database();
+  let currentDriver = localStorage.getItem('ec_driver_name') || "Driver 1 (WPG)"; 
+  document.getElementById('header-name').innerText = currentDriver;
+
+  function formatTime12(ts) {
+    const d = ts ? new Date(ts) : new Date();
+    return d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
+  function toggleDetails(btn) {
+    const box = btn.closest('.active-card').querySelector('.details-box');
+    box.style.display = box.style.display === "block" ? "none" : "block";
+    btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
+  }
+
+  db.ref("pickups").on("value", snapshot => {
+    const data = snapshot.val() || {};
+    const feed = document.getElementById("live-feed"); 
+    const rLog = document.getElementById("recent-log"); 
+    const qLog = document.getElementById("queue-log");
+    feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
+    
+    Object.entries(data).reverse().forEach(([id, p]) => {
+      if (p.assigned_to !== currentDriver) return;
+      const addrShort = p.pickup_location.split(',')[0];
+      const item = document.createElement("div"); 
+      item.className = "history-item";
+      item.innerHTML = `<strong>${addrShort}</strong>`;
+
+      if (p.status === 'completed') {
+        item.onclick = () => { if(confirm("Restore to Queue?")) db.ref("pickups").child(id).update({status:'pending'}); };
+        rLog.appendChild(item);
+      } else {
+        qLog.appendChild(item);
+        const dims = p.dimensions || {length: "-", width: "-", height: "-"};
+        const navP = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.pickup_location + ' ' + (p.pickup_city || ''))}`;
+        const navD = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.destination + ' ' + (p.dest_city || ''))}`;
+
+        const card = document.createElement("div"); 
+        card.className = "active-card";
+        card.innerHTML = `
+          <div class="card-main-grid">
+            <div class="address-block">
+              <div class="card-label">Pickup</div>
+              <a href="${navP}" target="_blank">
+                <div class="pickup-value">${p.pickup_location}</div>
+                <div class="city-sub">${p.pickup_city || ''}</div>
+              </a>
+              <div class="card-label" style="margin-top:10px;">Drop</div>
+              <a href="${navD}" target="_blank">
+                <div class="drop-value">${p.destination}</div>
+                <div class="city-sub" style="font-size:14px; color:#777;">${p.dest_city || ''}</div>
+              </a>
+            </div>
+            <div class="specs-column">
+              <div class="card-label">Type</div>
+              <div class="tech-info">${p.package_type}</div>
+              <div class="card-label">Size</div>
+              <div class="tech-info">${dims.length}x${dims.width}x${dims.height}</div>
+            </div>
+          </div>
+
+          <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
+
+          <div class="details-box">
+            <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
+            <div><span style="color:var(--accent)">Notes:</span> ${p.other_info || 'None'}</div>
+          </div>
+
+          <div class="card-action-row">
+            <button class="info-toggle-btn" onclick="toggleDetails(this)">INFO</button>
+            <button class="done-btn" onclick="markDone('${id}')">COMPLETE</button>
+          </div>
+        `;
+        feed.appendChild(card);
+      }
+    });
+  });
+
+  function markDone(id) { if(confirm("Complete?")) db.ref("pickups").child(id).update({ status: 'completed' }); }
+  function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
+  setInterval(updateClock, 1000); updateClock();
+</script>
+</body>
+</html>
