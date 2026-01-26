@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>E&C Dispatch | Driver Portal</title>
+<style>
+  :root {
+    --accent: #ffcc00;
+    --queue-orange: #ff9800;
+    --card-bg: #1a1a1a;
+    --active-green: #4caf50;
+    --review-blue: #2196f3;
+    --text-main: #ffffff;
+    --danger: #ff4444;
+  }
+  * { box-sizing: border-box; }
+  
+  html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; }
+  body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
+  
+  #login-overlay {
+    position: fixed; inset: 0; background: #000; z-index: 999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-btn {
+    width: 100%; max-width: 300px; padding: 20px; margin: 10px 0;
+    background: #111; border: 1px solid #333; color: #fff;
+    font-size: 18px; font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase;
+  }
+
+  header { padding: 8px 15px; background: #000; border-bottom: 3px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  h1 { margin: 0; color: var(--accent); font-size: 16px; font-weight: 900; }
+
+  #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
+  
+  #history-sidebar { 
+    width: 120px; border-right: 2px solid #333; overflow-y: auto; 
+    background: #0d0d0d; padding: 5px; flex-shrink: 0; 
+    display: flex; flex-direction: column;
+  }
+  #sidebar-content { flex: 1; }
+  .sidebar-btns { padding-top: 10px; border-top: 1px solid #333; margin-top: 10px; padding-bottom: 10px; }
+
+  .section-label { font-size: 9px; font-weight: 900; text-transform: uppercase; margin: 8px 0 4px 0; display: block; color: #666; border-bottom: 1px solid #333; }
+  .history-item { background: #151515; padding: 6px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid #333; font-size: 10px; color: var(--text-main); cursor: pointer; }
+  
+  /* UPDATED: FULL WIDTH CARDS */
+  #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+
+  .active-card { 
+    background: var(--card-bg); padding: 10px; border-radius: 8px; 
+    border: 1px solid #333; width: 100%; /* Spans the whole right side */
+    display: flex; flex-direction: column;
+    animation: slideInRight 0.3s ease-out; 
+  }
+
+  /* Row for Address + Data */
+  .card-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .address-block { flex: 1; }
+  .data-block { text-align: right; min-width: 80px; }
+
+  /* Row for Buttons */
+  .card-action-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+
+  @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  .card-label { color: var(--accent); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+  .nav-link { text-decoration: none; color: inherit; display: block; }
+  .pickup-value { font-size: 19px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
+  .drop-value { font-size: 14px; font-weight: 800; color: #bbb; text-transform: uppercase; line-height: 1; margin-top: 2px; }
+  .tech-info { font-size: 12px; font-weight: 900; color: var(--accent); text-transform: uppercase; line-height: 1.2; }
+
+  .details-box { display: none; background: #000; padding: 8px; border-radius: 4px; margin-top: 8px; border-left: 2px solid var(--review-blue); font-size: 13px; color: #eee; width: 100%; }
+  
+  /* Sized to fit side-by-side */
+  .info-toggle-btn { flex: 0 0 60px; background: transparent; color: var(--review-blue); border: 1px solid #444; padding: 8px 0; font-size: 9px; font-weight: 900; border-radius: 4px; cursor: pointer; text-transform: uppercase; }
+  .done-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 14px; }
+
+  .util-btn { width: 100%; padding: 8px 4px; font-size: 8px; font-weight: 900; border-radius: 3px; border: 1px solid #444; background: #222; color: #ccc; cursor: pointer; text-transform: uppercase; margin-bottom: 5px; }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .btn-restore { color: var(--review-blue); border-color: var(--review-blue); }
+</style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <h2 style="color:var(--accent); margin-bottom:20px; font-weight: 900;">E&C DRIVER LOGIN</h2>
+    <button class="login-btn" onclick="loginWithPass('Driver 1 (WPG)', '1111')">WPG Local 1</button>
+    <button class="login-btn" onclick="loginWithPass('Driver 2 (WPG)', '2222')">WPG Local 2</button>
+    <button class="login-btn" onclick="loginWithPass('Cube Truck', '3333')">Cube Truck</button>
+    <button class="login-btn" onclick="loginWithPass('Night Driver', '4444')">Night Driver</button>
+</div>
+
+<header>
+  <h1 id="header-name">E&C PORTAL</h1>
+  <div id="clock" style="font-size: 12px; color: var(--accent); font-weight: bold;"></div>
+</header>
+
+<div id="main-container">
+  <div id="history-sidebar">
+    <div id="sidebar-content">
+      <span class="section-label" style="color: var(--queue-orange);">Queue</span>
+      <div id="queue-log"></div>
+      <span class="section-label" style="color: var(--active-green);">Done</span>
+      <div id="recent-log"></div>
+    </div>
+    
+    <div class="sidebar-btns">
+      <button class="util-btn btn-danger" onclick="clearOldHistory()">Clear Archive</button>
+      <button class="util-btn btn-restore" onclick="restore48h()">Restore 48h</button>
+    </div>
+  </div>
+  <div id="live-feed"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
+    authDomain: "eandccourier-36fcc.firebaseapp.com",
+    databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
+    projectId: "eandccourier-36fcc"
+  });
+
+  const db = firebase.database();
+  let currentDriver = localStorage.getItem('ec_driver_name');
+
+  if(currentDriver) {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('header-name').innerText = currentDriver;
+  }
+
+  function loginWithPass(name, pin) {
+    const input = prompt(`Enter PIN for ${name}:`);
+    if (input === pin) { localStorage.setItem('ec_driver_name', name); location.reload(); } else { alert("Access Denied"); }
+  }
+
+  function toggleDetails(btn) {
+    const card = btn.closest('.active-card');
+    const box = card.querySelector('.details-box');
+    if (box.style.display === "block") { box.style.display = "none"; btn.innerText = "Info"; } 
+    else { box.style.display = "block"; btn.innerText = "Hide"; }
+  }
+
+  function clearOldHistory() {
+    if(!confirm("Clear archived jobs from previous days?")) return;
+    const startOfToday = new Date().setHours(0,0,0,0);
+    db.ref("pickups").once("value", snapshot => {
+      snapshot.forEach(child => {
+        const job = child.val();
+        if(job.status === 'completed' && job.timestamp < startOfToday) { db.ref("pickups").child(child.key).remove(); }
+      });
+      alert("Old archives cleared.");
+    });
+  }
+
+  function restore48h() {
+    if(!confirm("Restore history from last 48h?")) return;
+    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
+    db.ref("pickups").once("value", snapshot => {
+      snapshot.forEach(child => {
+        const job = child.val();
+        if(job.assigned_to === currentDriver && job.timestamp > fortyEightHoursAgo) {
+          db.ref("pickups").child(child.key).update({ status: 'completed' });
+        }
+      });
+    });
+  }
+
+  function restoreJobToQueue(id) {
+    if(confirm("Move back to Queue?")) { db.ref("pickups").child(id).update({ status: 'pending' }); }
+  }
+
+  db.ref("pickups").on("value", snapshot => {
+    const data = snapshot.val() || {};
+    const feed = document.getElementById("live-feed"); 
+    const rLog = document.getElementById("recent-log"); 
+    const qLog = document.getElementById("queue-log");
+    feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
+    
+    Object.entries(data).reverse().forEach(([id, p]) => {
+      if (p.assigned_to !== currentDriver) return;
+      const isDone = p.status === 'completed';
+      const addrShort = p.pickup_location.split(',')[0];
+      const item = document.createElement("div"); 
+      item.className = "history-item";
+      item.innerHTML = `<strong>${addrShort}</strong>`;
+
+      if (isDone) {
+        item.onclick = () => restoreJobToQueue(id);
+        rLog.appendChild(item);
+      } else {
+        qLog.appendChild(item);
+        const navP = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.pickup_location)}`;
+        const navD = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.destination)}`;
+        const dims = p.dimensions || {length: "-", width: "-", height: "-"};
+        const card = document.createElement("div"); 
+        card.className = "active-card";
+        card.innerHTML = `
+          <div class="card-top-row">
+            <div class="address-block">
+              <div class="card-label">Pickup</div>
+              <a href="${navP}" target="_blank" class="nav-link"><div class="pickup-value">${p.pickup_location}</div></a>
+              <div class="card-label" style="margin-top:4px;">Drop</div>
+              <a href="${navD}" target="_blank" class="nav-link"><div class="drop-value">${p.destination}</div></a>
+            </div>
+            <div class="data-block">
+              <div class="card-label">Type</div>
+              <div class="tech-info" style="margin-bottom:4px;">${p.package_type}</div>
+              <div class="card-label">Size</div>
+              <div class="tech-info">${dims.length}x${dims.width}x${dims.height}</div>
+            </div>
+          </div>
+
+          <div class="details-box">
+            <div class="card-label">Contact: ${p.name || 'N/A'}</div>
+            <div class="card-label">PO: ${p.po_number || '-'}</div>
+            <div style="color:var(--accent); font-weight:bold; margin-top:4px;">${p.other_info || 'No notes'}</div>
+          </div>
+
+          <div class="card-action-row">
+            <button class="info-toggle-btn" onclick="toggleDetails(this)">Info</button>
+            <button class="done-btn" onclick="markDone('${id}')">COMPLETE</button>
+          </div>
+        `;
+        feed.appendChild(card);
+      }
+    });
+  });
+
+  function markDone(id) {
+    if(confirm("Complete?")) db.ref("pickups").child(id).update({ status: 'completed' });
+  }
+
+  function updateClock() { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
+  setInterval(updateClock, 1000); updateClock();
+</script>
+</body>
+</html>
