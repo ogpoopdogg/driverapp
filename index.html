@@ -55,24 +55,32 @@
       border-bottom: 2px solid #333; 
     }
     
-    /* --- PRO ARCHIVE ENTRY --- */
+    /* --- ENHANCED ARCHIVE ENTRY ANIMATION --- */
     .history-item { 
       background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; 
       border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; 
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
-      animation: archiveIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+      transition: all 0.3s ease;
     }
 
-    @keyframes archiveIn {
-      0% { transform: translateX(50px); opacity: 0; background: var(--active-green); }
-      100% { transform: translateX(0); opacity: 1; background: #151515; }
+    /* PRO POP & GLOW */
+    .just-archived {
+      animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      z-index: 10;
+      border-left-width: 6px;
+    }
+
+    @keyframes proArchivePop {
+      0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); box-shadow: 0 0 0px var(--active-green); }
+      30% { transform: scale(1.1) translateX(0); opacity: 1; background: var(--active-green); box-shadow: 0 0 30px var(--active-green); }
+      70% { transform: scale(1.1); background: var(--active-green); box-shadow: 0 0 20px var(--active-green); }
+      100% { transform: scale(1); opacity: 1; background: #151515; box-shadow: 0 0 0px transparent; }
     }
 
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
     
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
-    /* --- ACTIVE CARD SOFT GLOW & PULSE --- */
     .active-card { 
       background: var(--card-bg); padding: 12px; border-radius: 10px; 
       border: 1px solid #444; width: 100%; 
@@ -87,7 +95,6 @@
       100% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.1); border-color: #444; }
     }
 
-    /* --- PRO EXIT ANIMATION --- */
     .card-exit-success {
       transform: scale(0.2) translateX(-500px); 
       opacity: 0;
@@ -254,6 +261,7 @@
     feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
     
     const startOfToday = new Date().setHours(0,0,0,0);
+    const lastDoneId = sessionStorage.getItem('last_completed_job');
 
     Object.entries(data).reverse().forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
@@ -264,6 +272,13 @@
       
       const item = document.createElement("div"); 
       item.className = "history-item";
+      
+      // TRIGGER THE NEW POP ANIMATION
+      if(id === lastDoneId) {
+        item.classList.add('just-archived');
+        sessionStorage.removeItem('last_completed_job'); // Run once
+      }
+
       item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
 
       if (p.status === 'completed') {
@@ -313,6 +328,9 @@
     const card = document.getElementById(`card-${id}`);
     if(card) card.classList.add('card-exit-success');
     
+    // Track this ID so we can animate it in the sidebar
+    sessionStorage.setItem('last_completed_job', id);
+
     setTimeout(() => {
       db.ref("pickups").child(id).update({ 
         status: 'completed',
