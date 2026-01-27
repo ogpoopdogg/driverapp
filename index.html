@@ -18,14 +18,26 @@
     html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
     
+    /* NEW LOGIN PAGE STYLES */
     #login-overlay {
       position: fixed; inset: 0; background: #000; z-index: 999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
     }
-    .login-btn {
-      width: 100%; max-width: 400px; padding: 20px; margin: 10px 0;
-      background: #111; border: 2px solid #333; color: #fff;
-      font-size: 24px; font-weight: 800; border-radius: 12px; cursor: pointer; text-transform: uppercase;
+    .login-box {
+      width: 100%; max-width: 350px; background: #111; padding: 30px; 
+      border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+    .login-box h2 { color: var(--accent); margin-top: 0; font-weight: 900; letter-spacing: 1px; }
+    .login-input {
+      width: 100%; padding: 15px; margin: 10px 0; background: #222; border: 1px solid #444;
+      color: #fff; border-radius: 8px; font-size: 18px; outline: none; transition: 0.3s;
+    }
+    .login-input:focus { border-color: var(--accent); }
+    .login-submit {
+      width: 100%; padding: 15px; margin-top: 15px; background: var(--accent); border: none;
+      color: #000; font-weight: 900; font-size: 18px; border-radius: 8px; cursor: pointer;
+      text-transform: uppercase;
     }
 
     header { padding: 8px 15px; background: #000; border-bottom: 3px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
@@ -36,7 +48,6 @@
     
     #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 80px; }
     
-    /* MULTI ROUTE BUTTON */
     #multi-route-btn {
       position: fixed; bottom: 10px; left: 5px; width: 130px;
       padding: 12px 5px; background: #222; border: 2px solid #444;
@@ -56,111 +67,54 @@
       to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); }
     }
 
-    .section-label-pending { 
-      font-size: 18px; 
-      font-weight: 900; 
-      text-transform: uppercase; 
-      margin: 12px 0 6px 0; 
-      color: var(--queue-orange); 
-      border-bottom: 2px solid #333;
-      animation: pulseOrange 2s infinite ease-in-out;
-    }
-
-    .section-label-done { 
-      font-size: 14px; 
-      font-weight: 900; 
-      text-transform: uppercase; 
-      margin: 12px 0 6px 0; 
-      color: var(--active-green); 
-      border-bottom: 2px solid #333; 
-    }
+    .section-label-pending { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--queue-orange); border-bottom: 2px solid #333; animation: pulseOrange 2s infinite ease-in-out; }
+    .section-label-done { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--active-green); border-bottom: 2px solid #333; }
     
-    .history-item { 
-      background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; 
-      border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; 
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
-      transition: all 0.3s ease;
-    }
-
-    .just-archived {
-      animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-      z-index: 10;
-      border-left-width: 6px;
-    }
+    .history-item { background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
+    .just-archived { animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 10; border-left-width: 6px; }
 
     @keyframes proArchivePop {
-      0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); box-shadow: 0 0 0px var(--active-green); }
-      30% { transform: scale(1.1) translateX(0); opacity: 1; background: var(--active-green); box-shadow: 0 0 30px var(--active-green); }
-      70% { transform: scale(1.1); background: var(--active-green); box-shadow: 0 0 20px var(--active-green); }
-      100% { transform: scale(1); opacity: 1; background: #151515; box-shadow: 0 0 0px transparent; }
+      0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); }
+      30% { transform: scale(1.1) translateX(0); opacity: 1; background: var(--active-green); }
+      100% { transform: scale(1); opacity: 1; background: #151515; }
     }
 
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
-    
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; }
 
-    .active-card { 
-      background: var(--card-bg); padding: 12px; border-radius: 10px; 
-      border: 1px solid #444; width: 100%; 
-      display: flex; flex-direction: column;
-      animation: slideInRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both, softPulse 3s infinite ease-in-out;
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    @keyframes softPulse {
-      0% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.1); border-color: #444; }
-      50% { box-shadow: 0 0 15px rgba(255, 204, 0, 0.3); border-color: #666; }
-      100% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.1); border-color: #444; }
-    }
-
-    .card-exit-success {
-      transform: scale(0.2) translateX(-500px); 
-      opacity: 0;
-      filter: brightness(2) blur(5px);
-      pointer-events: none;
-    }
-
+    @keyframes softPulse { 0% { border-color: #444; } 50% { border-color: #666; } 100% { border-color: #444; } }
+    .card-exit-success { transform: scale(0.2) translateX(-500px); opacity: 0; filter: brightness(2) blur(5px); pointer-events: none; }
     .card-date-badge { font-size: 10px; font-weight: 900; color: #666; text-transform: uppercase; margin-bottom: 4px; }
     .card-layout { display: flex; justify-content: space-between; gap: 8px; }
     .address-side { flex: 1; display: flex; flex-direction: column; gap: 2px; }
     .specs-side { width: 90px; text-align: right; display: flex; flex-direction: column; gap: 8px; }
-
     .card-label { color: var(--accent); font-size: 11px; font-weight: 900; text-transform: uppercase; }
     .nav-link { text-decoration: none; color: inherit; }
-
-    .city-tag { 
-      display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; 
-      border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px;
-    }
-
+    .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px; }
     .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
     .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
     .job-time-stamp { font-size: 20px; font-weight: 900; color: #fff; text-align: center; margin: 8px 0; }
-
     .card-action-row { display: flex; gap: 8px; align-items: stretch; }
     .info-btn { flex: 0 0 75px; background: transparent; color: var(--review-blue); border: 2px solid var(--review-blue); padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 6px; cursor: pointer; }
     .done-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 20px; }
-
     .details-box { display: none; background: #000; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid var(--review-blue); font-size: 16px; color: #eee; line-height: 1.4; }
 
-    @keyframes pulseOrange {
-      0% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.03); opacity: 1; text-shadow: 0 0 10px rgba(255, 152, 0, 0.5); }
-      100% { transform: scale(1); opacity: 0.8; }
-    }
+    @keyframes pulseOrange { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.03); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
     @keyframes slideInRight { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   </style>
 </head>
 <body>
 
 <div id="login-overlay">
-    <h2 style="color:var(--accent); margin-bottom:20px; font-weight: 900;">E&C DRIVER LOGIN</h2>
-    <button class="login-btn" onclick="loginWithPass('Matt', '1111')">Matt</button>
-    <button class="login-btn" onclick="loginWithPass('Touch', '2222')">Touch</button>
-    <button class="login-btn" onclick="loginWithPass('Julian', '3333')">Julian</button>
-    <button class="login-btn" onclick="loginWithPass('Jess', '4444')">Jess</button>
+    <div class="login-box">
+        <h2>E&C PORTAL</h2>
+        <input type="text" id="login-user" class="login-input" placeholder="Driver Name" autofocus>
+        <input type="password" id="login-pin" class="login-input" placeholder="PIN">
+        <button class="login-submit" onclick="attemptLogin()">Enter</button>
+    </div>
 </div>
 
 <header>
@@ -194,16 +148,39 @@
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
+  const VALID_DRIVERS = {
+      "Matt": "1111",
+      "Touch": "2222",
+      "Julian": "3333",
+      "Jess": "4444"
+  };
+
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('header-name').innerText = currentDriver;
   }
 
-  function loginWithPass(name, pin) {
-    const input = prompt(`Enter PIN for ${name}:`);
-    if (input === pin) { localStorage.setItem('ec_driver_name', name); location.reload(); }
-    else { alert("Access Denied"); }
+  function attemptLogin() {
+      const nameInput = document.getElementById('login-user').value.trim();
+      const pinInput = document.getElementById('login-pin').value;
+      
+      // Match exactly as stored in list
+      const driverKey = Object.keys(VALID_DRIVERS).find(k => k.toLowerCase() === nameInput.toLowerCase());
+
+      if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
+          localStorage.setItem('ec_driver_name', driverKey);
+          location.reload();
+      } else {
+          alert("Invalid Name or PIN");
+      }
   }
+
+  // Allow "Enter" key to submit login
+  document.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
+        attemptLogin();
+    }
+  });
 
   function formatTime12(ts) {
     const d = ts ? new Date(ts) : new Date();
@@ -229,8 +206,7 @@
   }
 
   function getNavUrl(addr, city) {
-    const fullQuery = `${addr}, ${city}`;
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
   function routeOldestTen() {
@@ -242,10 +218,8 @@
         .slice(0, 10);
 
       if (pendingJobs.length === 0) return alert("No pending jobs.");
-
       const stops = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-      const url = `https://www.google.com/maps/dir/${stops}`;
-      window.open(url, '_blank');
+      window.open(`https://www.google.com/maps/dir/${stops}`, '_blank');
     });
   }
 
@@ -289,6 +263,7 @@
   }
 
   db.ref("pickups").on("value", snapshot => {
+    if(!currentDriver) return;
     const data = snapshot.val() || {};
     const feed = document.getElementById("live-feed"); 
     const rLog = document.getElementById("recent-log"); 
@@ -303,7 +278,6 @@
 
     Object.entries(data).reverse().forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
-
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
@@ -311,7 +285,6 @@
       
       const item = document.createElement("div"); 
       item.className = "history-item";
-      
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
@@ -369,9 +342,7 @@
     if(!confirm("Complete?")) return;
     const card = document.getElementById(`card-${id}`);
     if(card) card.classList.add('card-exit-success');
-    
     sessionStorage.setItem('last_completed_job', id);
-
     setTimeout(() => {
       db.ref("pickups").child(id).update({ 
         status: 'completed',
