@@ -34,8 +34,28 @@
 
     #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
     
-    #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; }
+    #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 80px; }
     
+    /* MULTI ROUTE BUTTON */
+    #multi-route-btn {
+      position: fixed; bottom: 10px; left: 5px; width: 130px;
+      padding: 12px 5px; background: #222; border: 2px solid #444;
+      color: #666; font-weight: 900; font-size: 12px; border-radius: 8px;
+      cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
+    }
+    
+    .glow-active {
+      background: var(--queue-orange) !important;
+      color: #000 !important;
+      border-color: #fff !important;
+      animation: buttonGlow 1.5s infinite alternate;
+    }
+
+    @keyframes buttonGlow {
+      from { box-shadow: 0 0 5px var(--queue-orange); transform: scale(1); }
+      to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); }
+    }
+
     .section-label-pending { 
       font-size: 18px; 
       font-weight: 900; 
@@ -154,6 +174,7 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
+    <button id="multi-route-btn" onclick="routeOldestTen()">ROUTE MULTI</button>
   </div>
   <div id="live-feed"></div>
 </div>
@@ -209,7 +230,25 @@
 
   function getNavUrl(addr, city) {
     const fullQuery = `${addr}, ${city}`;
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullQuery)}`;
+  }
+
+  // Optimized Route Function
+  function routeOldestTen() {
+    db.ref("pickups").once("value", snapshot => {
+      const data = snapshot.val() || {};
+      const pendingJobs = Object.values(data)
+        .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)) // Oldest first
+        .slice(0, 10); // Max 10
+
+      if (pendingJobs.length === 0) return alert("No pending jobs.");
+
+      const stops = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
+      // Google Maps direction URL with stops
+      const url = `https://www.google.com/maps/dir/Current+Location/${stops}`;
+      window.open(url, '_blank');
+    });
   }
 
   function viewJobInfo(id, p) {
@@ -256,16 +295,17 @@
     const feed = document.getElementById("live-feed"); 
     const rLog = document.getElementById("recent-log"); 
     const qLog = document.getElementById("queue-log");
+    const routeBtn = document.getElementById("multi-route-btn");
+    
     feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
     
     const startOfToday = new Date().setHours(0,0,0,0);
     const lastDoneId = sessionStorage.getItem('last_completed_job');
+    let pendingCount = 0;
 
     Object.entries(data).reverse().forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
 
-      // Only hide completed jobs that were finished before today.
-      // Pending jobs show up regardless of when they were created.
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
@@ -285,6 +325,7 @@
         item.onclick = () => viewJobInfo(id, p);
         rLog.appendChild(item);
       } else {
+        pendingCount++;
         qLog.appendChild(item);
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
@@ -321,6 +362,10 @@
         feed.appendChild(card);
       }
     });
+
+    // Toggle Glow if > 3 pending
+    if(pendingCount > 3) { routeBtn.classList.add('glow-active'); }
+    else { routeBtn.classList.remove('glow-active'); }
   });
 
   function markDone(id) {
