@@ -157,10 +157,10 @@
 
 <div id="login-overlay">
     <h2 style="color:var(--accent); margin-bottom:20px; font-weight: 900;">E&C DRIVER LOGIN</h2>
-    <button class="login-btn" onclick="loginWithPass('Driver 1 (WPG)', '1111')">WPG Local 1</button>
-    <button class="login-btn" onclick="loginWithPass('Driver 2 (WPG)', '2222')">WPG Local 2</button>
-    <button class="login-btn" onclick="loginWithPass('Cube Truck', '3333')">Cube Truck</button>
-    <button class="login-btn" onclick="loginWithPass('Night Driver', '4444')">Night Driver</button>
+    <button class="login-btn" onclick="loginWithPass('Matt', '1111')">Matt</button>
+    <button class="login-btn" onclick="loginWithPass('Touch', '2222')">Touch</button>
+    <button class="login-btn" onclick="loginWithPass('Julian', '3333')">Julian</button>
+    <button class="login-btn" onclick="loginWithPass('Jess', '4444')">Jess</button>
 </div>
 
 <header>
@@ -230,23 +230,21 @@
 
   function getNavUrl(addr, city) {
     const fullQuery = `${addr}, ${city}`;
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullQuery)}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
   }
 
-  // Optimized Route Function
   function routeOldestTen() {
     db.ref("pickups").once("value", snapshot => {
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
-        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)) // Oldest first
-        .slice(0, 10); // Max 10
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+        .slice(0, 10);
 
       if (pendingJobs.length === 0) return alert("No pending jobs.");
 
       const stops = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-      // Google Maps direction URL with stops
-      const url = `https://www.google.com/maps/dir/Current+Location/${stops}`;
+      const url = `https://www.google.com/maps/dir/${stops}`;
       window.open(url, '_blank');
     });
   }
@@ -363,7 +361,6 @@
       }
     });
 
-    // Toggle Glow if > 3 pending
     if(pendingCount > 3) { routeBtn.classList.add('glow-active'); }
     else { routeBtn.classList.remove('glow-active'); }
   });
