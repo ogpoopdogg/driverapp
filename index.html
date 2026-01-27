@@ -55,7 +55,6 @@
       border-bottom: 2px solid #333; 
     }
     
-    /* --- ENHANCED ARCHIVE ENTRY ANIMATION --- */
     .history-item { 
       background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; 
       border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; 
@@ -63,7 +62,6 @@
       transition: all 0.3s ease;
     }
 
-    /* PRO POP & GLOW */
     .just-archived {
       animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
       z-index: 10;
@@ -265,7 +263,10 @@
 
     Object.entries(data).reverse().forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
-      if (p.timestamp < startOfToday) return;
+
+      // Only hide completed jobs that were finished before today.
+      // Pending jobs show up regardless of when they were created.
+      if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const contactName = p.name || 'No Name';
@@ -273,10 +274,9 @@
       const item = document.createElement("div"); 
       item.className = "history-item";
       
-      // TRIGGER THE NEW POP ANIMATION
       if(id === lastDoneId) {
         item.classList.add('just-archived');
-        sessionStorage.removeItem('last_completed_job'); // Run once
+        sessionStorage.removeItem('last_completed_job');
       }
 
       item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
@@ -328,7 +328,6 @@
     const card = document.getElementById(`card-${id}`);
     if(card) card.classList.add('card-exit-success');
     
-    // Track this ID so we can animate it in the sidebar
     sessionStorage.setItem('last_completed_job', id);
 
     setTimeout(() => {
