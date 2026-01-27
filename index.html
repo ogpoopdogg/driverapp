@@ -18,7 +18,21 @@
     html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
     
-    /* NEW LOGIN PAGE STYLES */
+    /* LOGO ANIMATION */
+    .header-logo {
+      height: 30px; /* Roughly 1/3 taller than 22px text */
+      width: auto;
+      margin-right: 12px;
+      vertical-align: middle;
+      filter: drop-shadow(0 0 5px var(--accent));
+      animation: logo-glow 2s infinite alternate;
+    }
+
+    @keyframes logo-glow {
+      from { filter: drop-shadow(0 0 2px var(--accent)); transform: scale(1); }
+      to { filter: drop-shadow(0 0 8px var(--accent)); transform: scale(1.05); }
+    }
+
     #login-overlay {
       position: fixed; inset: 0; background: #000; z-index: 999;
       display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
@@ -41,7 +55,7 @@
     }
 
     header { padding: 8px 15px; background: #000; border-bottom: 3px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-    h1 { margin: 0; color: var(--accent); font-size: 22px; font-weight: 900; }
+    h1 { margin: 0; color: var(--accent); font-size: 22px; font-weight: 900; display: flex; align-items: center; }
     #clock { font-size: 18px; color: var(--accent); font-weight: bold; }
 
     #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
@@ -118,7 +132,10 @@
 </div>
 
 <header>
-  <h1 id="header-name">E&C PORTAL</h1>
+  <h1 id="header-name">
+    <img src="icon-512.png" class="header-logo" alt="Logo">
+    E&C PORTAL
+  </h1>
   <div id="clock"></div>
 </header>
 
@@ -157,14 +174,13 @@
 
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('header-name').innerText = currentDriver;
+    document.getElementById('header-name').innerHTML = `<img src="icon-512.png" class="header-logo">${currentDriver}`;
   }
 
   function attemptLogin() {
       const nameInput = document.getElementById('login-user').value.trim();
       const pinInput = document.getElementById('login-pin').value;
       
-      // Match exactly as stored in list
       const driverKey = Object.keys(VALID_DRIVERS).find(k => k.toLowerCase() === nameInput.toLowerCase());
 
       if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
@@ -175,7 +191,6 @@
       }
   }
 
-  // Allow "Enter" key to submit login
   document.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
         attemptLogin();
@@ -206,7 +221,7 @@
   }
 
   function getNavUrl(addr, city) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr + ', ' + city)}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
   function routeOldestTen() {
