@@ -86,6 +86,9 @@
 
     .card-label { color: var(--accent); font-size: 11px; font-weight: 900; text-transform: uppercase; }
     
+    /* NAV LINKS */
+    .nav-link { text-decoration: none; color: inherit; }
+
     .city-tag { 
       display: inline-block;
       font-size: 16px; 
@@ -103,6 +106,8 @@
     .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
 
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
+    .dim-x { color: #888; font-weight: 400; }
+    
     .job-time-stamp { font-size: 20px; font-weight: 900; color: #fff; text-align: center; margin: 8px 0; }
 
     .card-action-row { display: flex; gap: 8px; align-items: stretch; }
@@ -194,10 +199,18 @@
     }
   }
 
+  // COMBINED SEARCH HELPER
+  function getNavUrl(addr, city) {
+    const fullQuery = `${addr}, ${city}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
+  }
+
   function viewJobInfo(id, p) {
       const feed = document.getElementById("live-feed");
       feed.innerHTML = "";
       const dims = p.dimensions || {length: "-", width: "-", height: "-"};
+      const navUrl = getNavUrl(p.pickup_location, p.city || '');
+      
       const card = document.createElement("div"); 
       card.className = "active-card";
       card.style.borderColor = "var(--review-blue)";
@@ -206,15 +219,15 @@
         <div style="text-align:center; color:var(--review-blue); font-weight:900; margin-bottom:8px;">REVIEWING DONE JOB</div>
         <div class="card-layout">
           <div class="address-side">
-            <div class="city-tag">${p.city || '??'}</div>
+            <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
             <div class="card-label">Pickup</div>
-            <div class="pickup-value">${p.pickup_location}</div>
+            <a href="${navUrl}" target="_blank" class="nav-link"><div class="pickup-value">${p.pickup_location}</div></a>
             <div class="card-label" style="margin-top:8px;">Drop</div>
             <div class="drop-value">${p.destination}</div>
           </div>
           <div class="specs-side">
             <div><div class="card-label">Type</div><div class="tech-info">${p.package_type}</div></div>
-            <div><div class="card-label">Size</div><div class="tech-info">${dims.length} x ${dims.width} x ${dims.height}</div></div>
+            <div><div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
           </div>
         </div>
         <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
@@ -255,6 +268,8 @@
       } else {
         qLog.appendChild(item);
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
+        const navUrl = getNavUrl(p.pickup_location, p.city || '');
+
         const card = document.createElement("div"); 
         card.className = "active-card";
         card.id = `card-${id}`;
@@ -262,15 +277,15 @@
           <div class="card-date-badge">${formatDateShort(p.timestamp)}</div>
           <div class="card-layout">
             <div class="address-side">
-              <div class="city-tag">${p.city || '??'}</div>
+              <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
               <div class="card-label">Pickup</div>
-              <div class="pickup-value">${p.pickup_location}</div>
+              <a href="${navUrl}" target="_blank" class="nav-link"><div class="pickup-value">${p.pickup_location}</div></a>
               <div class="card-label" style="margin-top:8px;">Drop</div>
               <div class="drop-value">${p.destination}</div>
             </div>
             <div class="specs-side">
               <div><div class="card-label">Type</div><div class="tech-info">${p.package_type}</div></div>
-              <div><div class="card-label">Size</div><div class="tech-info">${dims.length} x ${dims.width} x ${dims.height}</div></div>
+              <div><div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
