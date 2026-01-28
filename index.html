@@ -263,20 +263,28 @@
 
         const result = await response.json();
         let finalStops = [];
+        
+        // Use optimized order if API returns it
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
           const order = result.routes[0].optimizedIntermediateWaypointIndex;
           const middleStops = stops.slice(1, -1);
           finalStops.push(origin);
           order.forEach(idx => finalStops.push(middleStops[idx]));
           finalStops.push(destination);
-        } else { finalStops = stops; }
+        } else {
+          finalStops = stops; // Fallback to original order
+        }
 
-        const mapUrl = `https://www.google.com/maps/dir/?api=1&waypoints=${finalStops.slice(0,-1).map(s => encodeURIComponent(s)).join('|')}&destination=${encodeURIComponent(finalStops[finalStops.length-1])}`;
+        // Generate standard Google Maps multi-stop URL
+        const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
         window.open(mapUrl, '_blank');
       } catch (err) {
+        // Simple fallback
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
         window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
-      } finally { btn.innerText = oldText; }
+      } finally { 
+        btn.innerText = oldText; 
+      }
     });
   }
 
@@ -334,7 +342,6 @@
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
           <div class="details-box">
-
             <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
             <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
             <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
