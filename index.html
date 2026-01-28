@@ -19,10 +19,7 @@
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
     
     .header-logo {
-      height: 30px; 
-      width: auto;
-      margin-right: 12px;
-      vertical-align: middle;
+      height: 30px; width: auto; margin-right: 12px; vertical-align: middle;
       filter: drop-shadow(0 0 5px var(--accent));
       animation: logo-glow 2s infinite alternate;
     }
@@ -58,7 +55,6 @@
     #clock { font-size: 18px; color: var(--accent); font-weight: bold; }
 
     #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
-    
     #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 80px; }
     
     #multi-route-btn {
@@ -68,30 +64,11 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
     
-    .glow-active {
-      background: var(--queue-orange) !important;
-      color: #000 !important;
-      border-color: #fff !important;
-      animation: buttonGlow 1.5s infinite alternate;
-    }
+    .glow-active { background: var(--queue-orange) !important; color: #000 !important; border-color: #fff !important; animation: buttonGlow 1.5s infinite alternate; }
+    .glow-max { background: var(--active-green) !important; color: #fff !important; border: 2px solid #fff !important; transform: scale(1.1); animation: buttonMaxGlow 0.8s infinite alternate !important; }
 
-    .glow-max {
-      background: var(--active-green) !important;
-      color: #fff !important;
-      border: 2px solid #fff !important;
-      transform: scale(1.1);
-      animation: buttonMaxGlow 0.8s infinite alternate !important;
-    }
-
-    @keyframes buttonGlow {
-      from { box-shadow: 0 0 5px var(--queue-orange); transform: scale(1); }
-      to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); }
-    }
-
-    @keyframes buttonMaxGlow {
-      from { box-shadow: 0 0 10px var(--active-green); }
-      to { box-shadow: 0 0 30px #fff; }
-    }
+    @keyframes buttonGlow { from { box-shadow: 0 0 5px var(--queue-orange); transform: scale(1); } to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); } }
+    @keyframes buttonMaxGlow { from { box-shadow: 0 0 10px var(--active-green); } to { box-shadow: 0 0 30px #fff; } }
 
     .section-label-pending { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--queue-orange); border-bottom: 2px solid #333; animation: pulseOrange 2s infinite ease-in-out; }
     .section-label-done { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--active-green); border-bottom: 2px solid #333; }
@@ -99,17 +76,13 @@
     .history-item { background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
     .just-archived { animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 10; border-left-width: 6px; }
 
-    @keyframes proArchivePop {
-      0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); }
-      30% { transform: scale(1.1) translateX(0); opacity: 1; background: var(--active-green); }
-      100% { transform: scale(1); opacity: 1; background: #151515; }
-    }
-
+    @keyframes proArchivePop { 0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); } 30% { transform: scale(1.1) translateX(0); opacity: 1; background: var(--active-green); } 100% { transform: scale(1); opacity: 1; background: #151515; } }
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
+    
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; }
-
     @keyframes softPulse { 0% { border-color: #444; } 50% { border-color: #666; } 100% { border-color: #444; } }
+
     .card-exit-success { transform: scale(0.2) translateX(-500px); opacity: 0; filter: brightness(2) blur(5px); pointer-events: none; }
     .card-date-badge { font-size: 10px; font-weight: 900; color: #666; text-transform: uppercase; margin-bottom: 4px; }
     .card-layout { display: flex; justify-content: space-between; gap: 8px; }
@@ -121,7 +94,6 @@
     .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
     .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
-    .dim-x { color: #888; font-weight: 400; }
     .job-time-stamp { font-size: 20px; font-weight: 900; color: #fff; text-align: center; margin: 8px 0; }
     .card-action-row { display: flex; gap: 8px; align-items: stretch; }
     .info-btn { flex: 0 0 75px; background: transparent; color: var(--review-blue); border: 2px solid var(--review-blue); padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 6px; cursor: pointer; }
@@ -144,10 +116,7 @@
 </div>
 
 <header>
-  <h1 id="header-name">
-    <img src="icon-512.png" class="header-logo" alt="Logo">
-    E&C PORTAL
-  </h1>
+  <h1 id="header-name"><img src="icon-512.png" class="header-logo" alt="Logo">E&C PORTAL</h1>
   <div id="clock"></div>
 </header>
 
@@ -214,44 +183,46 @@
     btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
   }
 
-  // Single stop navigation helper
+  // Single stop nav link
   function getNavUrl(addr, city) {
-    const destination = encodeURIComponent(`${addr}, ${city}`);
-    return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+    const dest = encodeURIComponent(`${addr}, ${city}`);
+    return `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
   }
 
+  // MULTI-STOP OPTIMIZED ROUTE
   async function routeOptimized() {
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     const btn = document.getElementById("multi-route-btn");
     const oldText = btn.innerText;
     
     const getPos = () => new Promise((res, rej) => {
-      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true });
+      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 5000 });
     });
     
     try {
-      btn.innerText = "LOCATING...";
+      btn.innerText = "GPS...";
       const position = await getPos();
       const origin = `${position.coords.latitude},${position.coords.longitude}`;
 
       const snapshot = await db.ref("pickups").once("value");
       const data = snapshot.val() || {};
       
+      // Collect all pending stops for this driver
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
-        .slice(0, 10); // Mobile limits
+        .sort((a, b) => a.timestamp - b.timestamp) // Sort by oldest first
+        .slice(0, 10); 
 
-      if (pendingJobs.length === 0) return alert("No pending jobs found.");
+      if (pendingJobs.length === 0) return alert("No jobs to route!");
       
-      btn.innerText = "OPTIMIZING...";
+      btn.innerText = "SOLVING...";
 
       const allAddresses = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
       
-      // We take the last address as the "Destination" and everything else as "Waypoints"
+      // Google Routes API expects one 'destination' and 'intermediates'
       const destinationAddr = allAddresses.pop(); 
       const intermediates = allAddresses.map(addr => ({ address: addr }));
 
-      // optimization call
       const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
         method: "POST",
         headers: {
@@ -269,33 +240,36 @@
       });
 
       const result = await response.json();
-      let finalWaypoints = [];
+      let finalSequence = [];
 
+      // Sort waypoints based on Google's optimization
       if (result.routes && result.routes[0] && result.routes[0].optimizedIntermediateWaypointIndex) {
         const order = result.routes[0].optimizedIntermediateWaypointIndex;
-        order.forEach(idx => finalWaypoints.push(allAddresses[idx]));
+        order.forEach(idx => finalSequence.push(allAddresses[idx]));
+        finalSequence.push(destinationAddr); // Destination is always last
       } else {
-        finalWaypoints = allAddresses;
+        // Fallback to original order if optimization fails
+        finalSequence = [...allAddresses, destinationAddr];
       }
 
-      // ANDROID FIX: Construct the Google Maps Directions Intent URL
-      const encodedDest = encodeURIComponent(destinationAddr);
-      const encodedStops = finalWaypoints.map(a => encodeURIComponent(a)).join('|');
+      // Format for the Google Maps app intent
+      const destParam = encodeURIComponent(finalSequence.pop());
+      const waypointParam = finalSequence.map(a => encodeURIComponent(a)).join('|');
       
-      // Building the URL: origin -> waypoints -> destination
-      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${encodedDest}&waypoints=${encodedStops}&travelmode=driving`;
+      // BUILD THE MULTI-STOP URL
+      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destParam}&waypoints=${waypointParam}&travelmode=driving`;
       
       window.open(mapUrl, '_blank');
 
     } catch (err) {
       console.error(err);
-      alert("Failed to build route. Please check GPS.");
+      alert("Route failed. Check GPS/Network.");
     } finally {
       btn.innerText = oldText;
     }
   }
 
-  // Firebase listeners
+  // Firebase real-time sync
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
     const data = snapshot.val() || {};
@@ -371,7 +345,7 @@
   });
 
   function markDone(id) {
-    if(!confirm("Complete?")) return;
+    if(!confirm("Complete Job?")) return;
     document.getElementById(`card-${id}`)?.classList.add('card-exit-success');
     sessionStorage.setItem('last_completed_job', id);
     setTimeout(() => {
