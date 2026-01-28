@@ -222,7 +222,7 @@
   }
 
   function getNavUrl(addr, city) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
   async function routeOptimized() {
@@ -262,26 +262,23 @@
         });
 
         const result = await response.json();
-        let finalStops = [];
+        let finalOrder = [];
         
-        // Use optimized order if API returns it
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
-          const order = result.routes[0].optimizedIntermediateWaypointIndex;
+          const orderIndices = result.routes[0].optimizedIntermediateWaypointIndex;
           const middleStops = stops.slice(1, -1);
-          finalStops.push(origin);
-          order.forEach(idx => finalStops.push(middleStops[idx]));
-          finalStops.push(destination);
+          finalOrder.push(origin);
+          orderIndices.forEach(idx => finalOrder.push(middleStops[idx]));
+          finalOrder.push(destination);
         } else {
-          finalStops = stops; // Fallback to original order
+          finalOrder = stops;
         }
 
-        // Generate standard Google Maps multi-stop URL
-        const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
+        const mapUrl = "https://www.google.com/maps/dir/" + finalOrder.map(s => encodeURIComponent(s)).join('/');
         window.open(mapUrl, '_blank');
       } catch (err) {
-        // Simple fallback
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+        window.open("https://www.google.com/maps/dir/" + fallback, '_blank');
       } finally { 
         btn.innerText = oldText; 
       }
