@@ -280,6 +280,60 @@
         })
       });
 
+     async function routeOptimized() {
+  const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ"; // replace this!
+
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    const btn = document.getElementById("multi-route-btn");
+    const oldText = btn.innerText;
+    btn.innerText = "OPTIMIZING...";
+
+    try {
+      const snapshot = await db.ref("pickups").once("value");
+      const data = snapshot.val() || {};
+
+      const pendingJobs = Object.values(data)
+        .filter(p => p.assigned_to === currentDriver && p.status !== 'completed');
+
+      if (pendingJobs.length === 0) {
+        alert("No pending jobs.");
+        btn.innerText = oldText;
+        return;
+      }
+
+      if (pendingJobs.length > 20) {
+        alert("Route limit is 20 stops.");
+        btn.innerText = oldText;
+        return;
+      }
+
+      const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
+
+      // Call Google Routes API
+      const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": GOOGLE_KEY,
+          "X-Goog-FieldMask": "routes.optimizedIntermediateWaypointIndex"
+        },
+        body: JSON.stringify({
+          origin: { location: { latLng: { latitude: lat, longitude: lng } } },
+          destination: { address: stops[stops.length - 1] },
+          intermediates: stops.slice(0, -1).map(s => ({ address: s })),
+          travelMode: "DRIVE",
+          optimizeWaypointOrder: true
+        })
+      });
+
       const result = await response.json();
 
       // Determine optimized order
@@ -287,7 +341,7 @@
       if (result.routes?.[0]?.optimizedIntermediateWaypointIndex) {
         const order = result.routes[0].optimizedIntermediateWaypointIndex;
         orderedStops = order.map(i => stops[i]);
-        orderedStops.push(stops[stops.length - 1]); // last stop
+        orderedStops.push(stops[stops.length - 1]);
       } else {
         orderedStops = stops;
       }
@@ -302,47 +356,13 @@
                      `&travelmode=driving`;
 
       window.open(mapUrl, "_blank");
-
-      btn.innerText = oldText;
     } catch (err) {
       console.error(err);
       alert("Route optimization failed.");
-      document.getElementById("multi-route-btn").innerText = "ROUTE NAV";
+    } finally {
+      btn.innerText = oldText;
     }
-  }, () => alert("Location permission denied."));
-}
 
-        const result = await response.json();
-        let orderedStops = [];
-
-        if (result.routes?.[0]?.optimizedIntermediateWaypointIndex) {
-          const order = result.routes[0].optimizedIntermediateWaypointIndex;
-          order.forEach(i => orderedStops.push(stops[i]));
-          orderedStops.push(stops[stops.length - 1]);
-        } else {
-          orderedStops = stops;
-        }
-
-        const waypoints = orderedStops
-          .slice(0, -1)
-          .map(s => encodeURIComponent(s))
-          .join("|");
-
-        const mapUrl =
-          `https://www.google.com/maps/dir/?api=1` +
-          `&origin=${lat},${lng}` +
-          `&destination=${encodeURIComponent(orderedStops[orderedStops.length - 1])}` +
-          `&waypoints=${waypoints}` +
-          `&travelmode=driving`;
-
-        window.open(mapUrl, "_blank");
-
-      } catch (err) {
-        alert("Route optimization failed.");
-      } finally {
-        btn.innerText = oldText;
-      }
-    });
   }, () => alert("Location permission denied."));
 }
 
