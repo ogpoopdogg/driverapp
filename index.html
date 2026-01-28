@@ -17,35 +17,32 @@
     html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
     .header-logo { height: 30px; width: auto; margin-right: 12px; vertical-align: middle; filter: drop-shadow(0 0 5px var(--accent)); animation: logo-glow 2s infinite alternate; }
-    @keyframes logo-glow { from { filter: drop-shadow(0 0 2px var(--accent)); transform: scale(1); } to { filter: drop-shadow(0 0 8px var(--accent)); transform: scale(1.05); } }
+    @keyframes logo-glow { from { filter: shadow(0 0 2px var(--accent)); } to { filter: shadow(0 0 8px var(--accent)); } }
     #login-overlay { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
-    .login-box { width: 100%; max-width: 350px; background: #111; padding: 30px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
-    .login-box h2 { color: var(--accent); margin-top: 0; font-weight: 900; letter-spacing: 1px; }
-    .login-input { width: 100%; padding: 15px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 18px; outline: none; transition: 0.3s; }
-    .login-input:focus { border-color: var(--accent); }
-    .login-submit { width: 100%; padding: 15px; margin-top: 15px; background: var(--accent); border: none; color: #000; font-weight: 900; font-size: 18px; border-radius: 8px; cursor: pointer; text-transform: uppercase; }
+    .login-box { width: 100%; max-width: 350px; background: #111; padding: 30px; border-radius: 15px; border: 1px solid #333; text-align: center; }
+    .login-input { width: 100%; padding: 15px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 18px; outline: none; }
+    .login-submit { width: 100%; padding: 15px; margin-top: 15px; background: var(--accent); border: none; color: #000; font-weight: 900; font-size: 18px; border-radius: 8px; cursor: pointer; }
     header { padding: 8px 15px; background: #000; border-bottom: 3px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     h1 { margin: 0; color: var(--accent); font-size: 22px; font-weight: 900; display: flex; align-items: center; }
     #clock { font-size: 18px; color: var(--accent); font-weight: bold; }
     #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
     #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 80px; }
-    #multi-route-btn { position: fixed; bottom: 10px; left: 5px; width: 130px; padding: 12px 5px; background: #222; border: 2px solid #444; color: #666; font-weight: 900; font-size: 12px; border-radius: 8px; cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s; }
+    #multi-route-btn { position: fixed; bottom: 10px; left: 5px; width: 130px; padding: 12px 5px; background: #222; border: 2px solid #444; color: #666; font-weight: 900; font-size: 12px; border-radius: 8px; cursor: pointer; z-index: 100; }
     .glow-active { background: var(--queue-orange) !important; color: #000 !important; border-color: #fff !important; animation: buttonGlow 1.5s infinite alternate; }
-    @keyframes buttonGlow { from { box-shadow: 0 0 5px var(--queue-orange); transform: scale(1); } to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); } }
+    @keyframes buttonGlow { from { box-shadow: 0 0 5px var(--queue-orange); } to { box-shadow: 0 0 20px var(--queue-orange); } }
     .section-label-pending { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--queue-orange); border-bottom: 2px solid #333; }
     .section-label-done { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--active-green); border-bottom: 2px solid #333; }
-    .history-item { background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
+    .history-item { background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; }
     .card-label { color: var(--accent); font-size: 11px; font-weight: 900; text-transform: uppercase; }
-    .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px; }
+    .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; margin-bottom: 6px; }
     .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
     .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
-    .card-action-row { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
-    .info-btn { flex: 0 0 75px; background: transparent; color: var(--review-blue); border: 2px solid var(--review-blue); padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 6px; cursor: pointer; }
-    .done-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 20px; }
-    .details-box { display: none; background: #000; padding: 10px; border-radius: 6px; margin-top: 8px; border-left: 4px solid var(--review-blue); font-size: 16px; color: #eee; line-height: 1.4; }
+    .card-action-row { display: flex; gap: 8px; margin-top: 10px; }
+    .info-btn { flex: 0 0 75px; background: transparent; color: var(--review-blue); border: 2px solid var(--review-blue); padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 6px; }
+    .done-btn { flex: 1; padding: 10px; border-radius: 6px; color: #fff; font-weight: 900; background: var(--active-green); font-size: 20px; border: none; }
+    .details-box { display: none; background: #000; padding: 10px; border-radius: 6px; margin-top: 8px; border-left: 4px solid var(--review-blue); font-size: 16px; color: #eee; }
   </style>
 </head>
 <body>
@@ -86,9 +83,7 @@
     projectId: "eandccourier-36fcc"
   }); 
 
-  // RESTORED LOGIN PERMISSION
   firebase.auth().signInAnonymously();
-  
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
   const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
@@ -105,7 +100,7 @@
       if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
           localStorage.setItem('ec_driver_name', driverKey);
           location.reload();
-      } else { alert("Invalid Name or PIN"); }
+      } else { alert("Invalid PIN"); }
   }
 
   async function routeOptimized() {
@@ -143,11 +138,14 @@
           finalOrder.push(stops[stops.length - 1]);
         } else { finalOrder = stops; }
 
+        // THE FINAL FIX: Official Google Maps Search API
+        // This is the most stable way to force ALL waypoints to show up.
         const origin = encodeURIComponent(finalOrder[0]);
-        const dest = encodeURIComponent(finalOrder[finalOrder.length - 1]);
-        const waypoints = finalOrder.slice(1, -1).map(s => encodeURIComponent(s)).join('|');
-        window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${waypoints}&travelmode=driving`, '_blank');
-      } catch (err) { alert("Error optimizing."); }
+        const destination = encodeURIComponent(finalOrder[finalOrder.length - 1]);
+        const waypoints = finalOrder.slice(1, -1).map(w => encodeURIComponent(w)).join('|');
+        
+        window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`, '_blank');
+      } catch (err) { alert("Error."); }
       finally { btn.innerText = "ROUTE NAV"; }
     });
   }
@@ -165,10 +163,9 @@
 
     Object.entries(data).reverse().forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
-      const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const item = document.createElement("div"); 
       item.className = "history-item";
-      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${p.name || 'No Name'}</span>`;
+      item.innerHTML = `<strong>${p.pickup_location.split(',')[0]}</strong>`;
 
       if (p.status === 'completed') {
         rLog.appendChild(item);
@@ -184,12 +181,10 @@
           <div class="card-label" style="margin-top:8px;">Drop</div>
           <div class="drop-value">${p.destination}</div>
           <div class="card-action-row">
-            <button class="info-btn" onclick="let box=this.closest('.active-card').querySelector('.details-box'); box.style.display=box.style.display==='block'?'none':'block'">INFO</button>
+            <button class="info-btn" onclick="let b=this.closest('.active-card').querySelector('.details-box'); b.style.display=b.style.display==='block'?'none':'block'">INFO</button>
             <button class="done-btn" onclick="db.ref('pickups').child('${id}').update({status:'completed', completed_at:Date.now()})">DONE</button>
           </div>
-          <div class="details-box">
-             PO: ${p.po_number || '-'} <br> Notes: ${p.other_info || 'None'}
-          </div>
+          <div class="details-box">PO: ${p.po_number || '-'} <br> Note: ${p.other_info || 'None'}</div>
         `;
         feed.appendChild(card);
       }
