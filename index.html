@@ -245,9 +245,9 @@
       try {
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
         
-        // If only one stop, just open it
         if (stops.length === 1) {
              window.open(getNavUrl(pendingJobs[0].pickup_location, pendingJobs[0].city), '_blank');
+             btn.innerText = oldText;
              return;
         }
 
@@ -284,13 +284,19 @@
           finalStops = stops;
         }
 
-        // Generate correct multi-stop URL
-        const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
+        // Standard App-Friendly Waypoint Format
+        const start = encodeURIComponent(finalStops[0]);
+        const end = encodeURIComponent(finalStops[finalStops.length - 1]);
+        const waypoints = finalStops.slice(1, -1).map(s => encodeURIComponent(s)).join('|');
+        
+        const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${start}&destination=${end}&waypoints=${waypoints}&travelmode=driving`;
         window.open(mapUrl, '_blank');
 
       } catch (err) {
-        const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+        // Simple fallback
+        const allStops = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`));
+        const fallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${allStops[0]}&destination=${allStops[allStops.length-1]}&waypoints=${allStops.slice(1,-1).join('|')}`;
+        window.open(fallbackUrl, '_blank');
       } finally {
         btn.innerText = oldText;
       }
