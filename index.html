@@ -86,6 +86,9 @@
     projectId: "eandccourier-36fcc"
   }); 
 
+  // RESTORED LOGIN PERMISSION
+  firebase.auth().signInAnonymously();
+  
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
   const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
@@ -114,7 +117,6 @@
         .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       if (pendingJobs.length < 1) return alert("No jobs.");
-      
       const btn = document.getElementById("multi-route-btn");
       btn.innerText = "OPTIMIZING...";
 
