@@ -214,7 +214,7 @@
     btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
   }
 
-  // Best Practice: Universal Directions URL (Works on Browser & Android App)
+  // Single stop navigation helper
   function getNavUrl(addr, city) {
     const destination = encodeURIComponent(`${addr}, ${city}`);
     return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
@@ -239,17 +239,19 @@
       
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
-        .slice(0, 10); // CRITICAL: Android app has a 10-stop reliable limit.
+        .slice(0, 10); // Mobile limits
 
       if (pendingJobs.length === 0) return alert("No pending jobs found.");
       
       btn.innerText = "OPTIMIZING...";
 
-      const originalWaypoints = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
-      const destinationAddr = originalWaypoints.pop(); 
-      const intermediates = originalWaypoints.map(addr => ({ address: addr }));
+      const allAddresses = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
+      
+      // We take the last address as the "Destination" and everything else as "Waypoints"
+      const destinationAddr = allAddresses.pop(); 
+      const intermediates = allAddresses.map(addr => ({ address: addr }));
 
-      // Fetch optimized order from Routes API
+      // optimization call
       const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
         method: "POST",
         headers: {
@@ -267,34 +269,33 @@
       });
 
       const result = await response.json();
-      let finalSequence = [];
+      let finalWaypoints = [];
 
       if (result.routes && result.routes[0] && result.routes[0].optimizedIntermediateWaypointIndex) {
         const order = result.routes[0].optimizedIntermediateWaypointIndex;
-        order.forEach(idx => finalSequence.push(originalWaypoints[idx]));
-        finalSequence.push(destinationAddr);
+        order.forEach(idx => finalWaypoints.push(allAddresses[idx]));
       } else {
-        finalSequence = [...originalWaypoints, destinationAddr];
+        finalWaypoints = allAddresses;
       }
 
-      // FORMATTING FOR ANDROID: Use 'dir' action with pipe-separated waypoints
-      const finalDest = encodeURIComponent(finalSequence.pop());
-      const stops = finalSequence.map(a => encodeURIComponent(a)).join('|');
+      // ANDROID FIX: Construct the Google Maps Directions Intent URL
+      const encodedDest = encodeURIComponent(destinationAddr);
+      const encodedStops = finalWaypoints.map(a => encodeURIComponent(a)).join('|');
       
-      // The Universal Directions URL ensures the Android App picks up all stops
-      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${finalDest}&waypoints=${stops}&travelmode=driving`;
+      // Building the URL: origin -> waypoints -> destination
+      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${encodedDest}&waypoints=${encodedStops}&travelmode=driving`;
       
       window.open(mapUrl, '_blank');
 
     } catch (err) {
       console.error(err);
-      alert("Routing failed. Ensure GPS is active.");
+      alert("Failed to build route. Please check GPS.");
     } finally {
       btn.innerText = oldText;
     }
   }
 
-  // Real-time Firebase listeners (Rest of logic remains same)
+  // Firebase listeners
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
     const data = snapshot.val() || {};
