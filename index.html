@@ -214,7 +214,7 @@
     btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
   }
 
-  // Best Practice: Universal Directions URL (Works on Browser & Android/iOS App)
+  // Best Practice: Universal Directions URL (Works on Browser & Android App)
   function getNavUrl(addr, city) {
     const destination = encodeURIComponent(`${addr}, ${city}`);
     return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
@@ -232,14 +232,14 @@
     try {
       btn.innerText = "LOCATING...";
       const position = await getPos();
-      const originStr = `${position.coords.latitude},${position.coords.longitude}`;
+      const origin = `${position.coords.latitude},${position.coords.longitude}`;
 
       const snapshot = await db.ref("pickups").once("value");
       const data = snapshot.val() || {};
       
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
-        .slice(0, 11); // Mobile App limit is roughly 11-12 stops including origin
+        .slice(0, 10); // CRITICAL: Android app has a 10-stop reliable limit.
 
       if (pendingJobs.length === 0) return alert("No pending jobs found.");
       
@@ -249,6 +249,7 @@
       const destinationAddr = originalWaypoints.pop(); 
       const intermediates = originalWaypoints.map(addr => ({ address: addr }));
 
+      // Fetch optimized order from Routes API
       const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
         method: "POST",
         headers: {
@@ -276,23 +277,24 @@
         finalSequence = [...originalWaypoints, destinationAddr];
       }
 
-      // MOBILE FIX: Use the /dir/ path with api=1
+      // FORMATTING FOR ANDROID: Use 'dir' action with pipe-separated waypoints
       const finalDest = encodeURIComponent(finalSequence.pop());
-      const waypoints = finalSequence.map(a => encodeURIComponent(a)).join('|');
+      const stops = finalSequence.map(a => encodeURIComponent(a)).join('|');
       
-      // Constructing the Universal Navigation URL
-      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${finalDest}&waypoints=${waypoints}&travelmode=driving`;
+      // The Universal Directions URL ensures the Android App picks up all stops
+      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${finalDest}&waypoints=${stops}&travelmode=driving`;
       
-      window.open(mapUrl, '_system'); // '_system' helps some Android shells trigger the app
+      window.open(mapUrl, '_blank');
 
     } catch (err) {
       console.error(err);
-      alert("Routing failed. Ensure Location Services are ON.");
+      alert("Routing failed. Ensure GPS is active.");
     } finally {
       btn.innerText = oldText;
     }
   }
 
+  // Real-time Firebase listeners (Rest of logic remains same)
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
     const data = snapshot.val() || {};
