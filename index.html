@@ -230,7 +230,7 @@
     db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
-        .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
+        .filter(p => p.assigned_to === currentDriver && p.status === 'pending')
         .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
         .slice(0, 25); 
 
@@ -271,7 +271,7 @@
           finalStops.push(destination);
         } else { finalStops = stops; }
 
-        const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
+        const mapUrl = `https://www.google.com/maps/dir/?api=1&waypoints=${finalStops.slice(0,-1).map(s => encodeURIComponent(s)).join('|')}&destination=${encodeURIComponent(finalStops[finalStops.length-1])}`;
         window.open(mapUrl, '_blank');
       } catch (err) {
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
@@ -333,7 +333,8 @@
             </div>
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
-          <div class="details-box"><br>
+          <div class="details-box">
+
             <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
             <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
             <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
@@ -350,7 +351,7 @@
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max');
       routeBtn.innerText = "MAX ROUTE";
-    } else if(pendingCount > 2) {
+    } else if(pendingCount > 0) {
       routeBtn.classList.remove('glow-max');
       routeBtn.classList.add('glow-active');
       routeBtn.innerText = "ROUTE NAV";
