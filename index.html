@@ -20,7 +20,7 @@
     
     /* LOGO ANIMATION */
     .header-logo {
-      height: 30px; /* Roughly 1/3 taller than 22px text */
+      height: 30px; 
       width: auto;
       margin-right: 12px;
       vertical-align: middle;
@@ -76,9 +76,23 @@
       animation: buttonGlow 1.5s infinite alternate;
     }
 
+    /* 20+ Jobs Style */
+    .glow-max {
+      background: var(--active-green) !important;
+      color: #fff !important;
+      border: 2px solid #fff !important;
+      transform: scale(1.1);
+      animation: buttonMaxGlow 0.8s infinite alternate !important;
+    }
+
     @keyframes buttonGlow {
       from { box-shadow: 0 0 5px var(--queue-orange); transform: scale(1); }
       to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); }
+    }
+
+    @keyframes buttonMaxGlow {
+      from { box-shadow: 0 0 10px var(--active-green); }
+      to { box-shadow: 0 0 30px #fff; }
     }
 
     .section-label-pending { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--queue-orange); border-bottom: 2px solid #333; animation: pulseOrange 2s infinite ease-in-out; }
@@ -145,7 +159,7 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
-    <button id="multi-route-btn" onclick="routeOldestTen()">ROUTE NAV</button>
+    <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
   <div id="live-feed"></div>
 </div>
@@ -180,9 +194,7 @@
   function attemptLogin() {
       const nameInput = document.getElementById('login-user').value.trim();
       const pinInput = document.getElementById('login-pin').value;
-      
       const driverKey = Object.keys(VALID_DRIVERS).find(k => k.toLowerCase() === nameInput.toLowerCase());
-
       if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
           localStorage.setItem('ec_driver_name', driverKey);
           location.reload();
@@ -224,17 +236,67 @@
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
-  function routeOldestTen() {
-    db.ref("pickups").once("value", snapshot => {
+  // UPDATED OPTIMIZATION LOGIC (Max 25 Stops)
+  async function routeOptimized() {
+    const GOOGLE_KEY = "AIzaSyD-bqDRsCBXz1SrRwtB5NN-LO7TNERGAYc";
+    
+    db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
         .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-        .slice(0, 10);
+        .slice(0, 25); // Max capacity for Routes API
 
       if (pendingJobs.length === 0) return alert("No pending jobs.");
-      const stops = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-      window.open(`https://www.google.com/maps/dir/${stops}`, '_blank');
+      
+      const btn = document.getElementById("multi-route-btn");
+      const oldText = btn.innerText;
+      btn.innerText = "OPTIMIZING...";
+
+      try {
+        const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
+        const origin = stops[0];
+        const destination = stops[stops.length - 1];
+        const intermediates = stops.slice(1, -1).map(s => ({ address: s }));
+
+        const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": GOOGLE_KEY,
+            "X-Goog-FieldMask": "routes.optimizedIntermediateWaypointIndex"
+          },
+          body: JSON.stringify({
+            origin: { address: origin },
+            destination: { address: destination },
+            intermediates: intermediates,
+            travelMode: "DRIVE",
+            optimizeWaypointOrder: true
+          })
+        });
+
+        const result = await response.json();
+        let finalStops = [];
+
+        if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
+          const order = result.routes[0].optimizedIntermediateWaypointIndex;
+          const middleStops = stops.slice(1, -1);
+          finalStops.push(origin);
+          order.forEach(idx => finalStops.push(middleStops[idx]));
+          finalStops.push(destination);
+        } else {
+          finalStops = stops;
+        }
+
+        const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
+        window.open(mapUrl, '_blank');
+
+      } catch (err) {
+        const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
+        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+      } finally {
+        btn.innerText = oldText;
+      }
     });
   }
 
@@ -286,7 +348,6 @@
     const routeBtn = document.getElementById("multi-route-btn");
     
     feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
-    
     const startOfToday = new Date().setHours(0,0,0,0);
     const lastDoneId = sessionStorage.getItem('last_completed_job');
     let pendingCount = 0;
@@ -297,14 +358,12 @@
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const contactName = p.name || 'No Name';
-      
       const item = document.createElement("div"); 
       item.className = "history-item";
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
       }
-
       item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
 
       if (p.status === 'completed') {
@@ -315,7 +374,6 @@
         qLog.appendChild(item);
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
-
         const card = document.createElement("div"); 
         card.className = "active-card";
         card.id = `card-${id}`;
@@ -349,8 +407,18 @@
       }
     });
 
-    if(pendingCount > 3) { routeBtn.classList.add('glow-active'); }
-    else { routeBtn.classList.remove('glow-active'); }
+    // Button Visual Logic
+    if(pendingCount >= 20) {
+      routeBtn.classList.add('glow-max');
+      routeBtn.innerText = "MAX ROUTE";
+    } else if(pendingCount > 2) {
+      routeBtn.classList.remove('glow-max');
+      routeBtn.classList.add('glow-active');
+      routeBtn.innerText = "ROUTE NAV";
+    } else {
+      routeBtn.classList.remove('glow-active', 'glow-max');
+      routeBtn.innerText = "ROUTE NAV";
+    }
   });
 
   function markDone(id) {
