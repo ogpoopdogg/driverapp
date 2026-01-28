@@ -68,7 +68,6 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
     
-    /* GLO-UP FOR ROUTE NAV */
     .glow-active {
       background: var(--queue-orange) !important;
       color: #000 !important;
@@ -76,7 +75,6 @@
       animation: buttonGlow 1.5s infinite alternate;
     }
 
-    /* 20+ JOBS STYLE */
     .glow-max {
       background: var(--active-green) !important;
       color: #fff !important;
@@ -179,12 +177,7 @@
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
-  const VALID_DRIVERS = {
-      "Matt": "1111",
-      "Touch": "2222",
-      "Julian": "3333",
-      "Jess": "4444"
-  };
+  const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
 
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
@@ -198,9 +191,7 @@
       if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
           localStorage.setItem('ec_driver_name', driverKey);
           location.reload();
-      } else {
-          alert("Invalid Name or PIN");
-      }
+      } else { alert("Invalid Name or PIN"); }
   }
 
   document.addEventListener('keypress', (e) => {
@@ -215,8 +206,7 @@
   }
 
   function formatDateShort(ts) {
-    const d = new Date(ts);
-    return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+    return new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   }
 
   function toggleDetails(btn) {
@@ -228,7 +218,6 @@
   function restoreToQueue(id) {
     if(confirm("Restore this job back to the active list?")) {
       db.ref("pickups").child(id).update({ status: 'pending' });
-      location.reload();
     }
   }
 
@@ -236,11 +225,8 @@
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
-  // OPTIMIZED ROUTE FUNCTION (Handles up to 25 stops)
   async function routeOptimized() {
- 
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
-    
     db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
@@ -249,7 +235,6 @@
         .slice(0, 25); 
 
       if (pendingJobs.length === 0) return alert("No pending jobs.");
-      
       const btn = document.getElementById("multi-route-btn");
       const oldText = btn.innerText;
       btn.innerText = "OPTIMIZING...";
@@ -278,26 +263,20 @@
 
         const result = await response.json();
         let finalStops = [];
-
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
           const order = result.routes[0].optimizedIntermediateWaypointIndex;
           const middleStops = stops.slice(1, -1);
           finalStops.push(origin);
           order.forEach(idx => finalStops.push(middleStops[idx]));
           finalStops.push(destination);
-        } else {
-          finalStops = stops;
-        }
+        } else { finalStops = stops; }
 
         const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
         window.open(mapUrl, '_blank');
-
       } catch (err) {
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
         window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
-      } finally {
-        btn.innerText = oldText;
-      }
+      } finally { btn.innerText = oldText; }
     });
   }
 
@@ -319,17 +298,16 @@
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
-      const contactName = p.name || 'No Name';
       const item = document.createElement("div"); 
       item.className = "history-item";
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
       }
-      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
+      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${p.name || 'No Name'}</span>`;
 
       if (p.status === 'completed') {
-        item.onclick = () => viewJobInfo(id, p);
+        item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
         pendingCount++;
@@ -369,7 +347,6 @@
       }
     });
 
-    // BUTTON LIGHT-UP LOGIC
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max');
       routeBtn.innerText = "MAX ROUTE";
@@ -389,10 +366,7 @@
     if(card) card.classList.add('card-exit-success');
     sessionStorage.setItem('last_completed_job', id);
     setTimeout(() => {
-      db.ref("pickups").child(id).update({ 
-        status: 'completed',
-        completed_at: Date.now() 
-      });
+      db.ref("pickups").child(id).update({ status: 'completed', completed_at: Date.now() });
     }, 500); 
   }
 
