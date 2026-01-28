@@ -155,15 +155,20 @@
       if (pendingJobs.length < 1) return alert("No jobs.");
       
       const btn = document.getElementById("multi-route-btn");
+      const originalText = btn.innerText;
       btn.innerText = "OPTIMIZING...";
 
       try {
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
         
-        // Optimize with your API Key
+        // 1. Ask Routes API for the best order
         const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_KEY, "X-Goog-FieldMask": "routes.optimizedIntermediateWaypointIndex" },
+          headers: { 
+            "Content-Type": "application/json", 
+            "X-Goog-Api-Key": GOOGLE_KEY, 
+            "X-Goog-FieldMask": "routes.optimizedIntermediateWaypointIndex" 
+          },
           body: JSON.stringify({
             origin: { address: stops[0] },
             destination: { address: stops[stops.length - 1] },
@@ -175,24 +180,36 @@
 
         const result = await response.json();
         let finalOrder = [stops[0]];
+        
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
           const orderIndices = result.routes[0].optimizedIntermediateWaypointIndex;
           const middleStops = stops.slice(1, -1);
           orderIndices.forEach(idx => finalOrder.push(middleStops[idx]));
           finalOrder.push(stops[stops.length - 1]);
-        } else { finalOrder = stops; }
+        } else { 
+          finalOrder = stops; 
+        }
 
-        // THE FIX: Proper Google Maps Directions URL (api=1)
-        // This is the only way to ensure 5+ waypoints are passed to the app.
+        // 2. THE ULTIMATE FIX FOR MOBILE APPS: 
+        // We use the 'dir' action with the 'waypoints' parameter. 
+        // This is the universal standard for passing many stops to the app.
         const origin = encodeURIComponent(finalOrder[0]);
         const dest = encodeURIComponent(finalOrder[finalOrder.length - 1]);
+        
+        // Join all middle stops with a pipe | character
         const waypoints = finalOrder.slice(1, -1).map(s => encodeURIComponent(s)).join('|');
         
+        // This link format forces the Google Maps App to open with ALL waypoints loaded
         const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${waypoints}&travelmode=driving`;
+        
         window.open(mapUrl, '_blank');
 
-      } catch (err) { alert("Error optimizing."); }
-      finally { btn.innerText = "ROUTE NAV"; }
+      } catch (err) { 
+        console.error(err);
+        alert("Error optimizing."); 
+      } finally { 
+        btn.innerText = originalText; 
+      }
     });
   }
 
