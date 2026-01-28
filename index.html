@@ -177,9 +177,7 @@
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
-  const VALID_DRIVERS = {
-      "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444"
-  };
+  const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
 
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
@@ -235,16 +233,17 @@
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
-        .slice(0, 25); 
+        .slice(0, 24); 
 
       if (pendingJobs.length === 0) return alert("No pending jobs.");
       btn.innerText = "OPTIMIZING...";
 
-      // Setup addresses
-      const waypoints = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
-      const destinationAddr = waypoints.pop(); 
-      const intermediates = waypoints.map(addr => ({ address: addr }));
+      // Setup Address Array
+      const originalWaypoints = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
+      const destinationAddr = originalWaypoints.pop(); 
+      const intermediates = originalWaypoints.map(addr => ({ address: addr }));
 
+      // API Call
       const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
         method: "POST",
         headers: {
@@ -262,27 +261,28 @@
       });
 
       const result = await response.json();
-      let routeList = [];
+      let finalSequence = [];
 
-      // RECONSTRUCT FULL ROUTE
+      // Logic Fix: Handle optimization index response
       if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
         const order = result.routes[0].optimizedIntermediateWaypointIndex;
-        order.forEach(idx => routeList.push(waypoints[idx]));
-        routeList.push(destinationAddr);
+        order.forEach(idx => finalSequence.push(originalWaypoints[idx]));
+        finalSequence.push(destinationAddr);
       } else {
-        routeList = [...waypoints, destinationAddr];
+        // Fallback to original order
+        finalSequence = [...originalWaypoints, destinationAddr];
       }
 
-      // Generate Universal Google Maps Multi-stop URL
-      const dest = encodeURIComponent(routeList.pop());
-      const stops = routeList.map(a => encodeURIComponent(a)).join('|');
-      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${stops}&travelmode=driving`;
+      // Universal Google Maps Multi-stop Formatting
+      const destUrl = encodeURIComponent(finalSequence.pop());
+      const stopsUrl = finalSequence.map(a => encodeURIComponent(a)).join('|');
+      const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destUrl}&waypoints=${stopsUrl}&travelmode=driving`;
       
       window.open(mapUrl, '_blank');
 
     } catch (err) {
       console.error(err);
-      alert("Error building route. Using standard list.");
+      alert("Mapping failed. Check GPS permissions.");
     } finally {
       btn.innerText = oldText;
     }
@@ -355,7 +355,7 @@
 
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max'); routeBtn.innerText = "MAX ROUTE";
-    } else if(pendingCount > 2) {
+    } else if(pendingCount > 1) {
       routeBtn.classList.add('glow-active'); routeBtn.innerText = "ROUTE NAV";
     } else {
       routeBtn.classList.remove('glow-active', 'glow-max'); routeBtn.innerText = "ROUTE NAV";
