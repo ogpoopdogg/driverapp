@@ -287,43 +287,7 @@ async function routeOptimized() {
           }
         );
 
-        const result = await response.json();
-
-        let orderedStops = [];
-
-        if (result.routes?.[0]?.optimizedIntermediateWaypointIndex) {
-          const order = result.routes[0].optimizedIntermediateWaypointIndex;
-          order.forEach(i => orderedStops.push(stops[i]));
-        } else {
-          orderedStops = stops;
-        }
-
-        // Last stop becomes destination
-        const destination = orderedStops[orderedStops.length - 1];
-        const waypoints = orderedStops
-          .slice(0, -1)
-          .map(s => encodeURIComponent(s))
-          .join("|");
-
-        const mapUrl =
-          `https://www.google.com/maps/dir/?api=1` +
-          `&origin=${lat},${lng}` +
-          `&destination=${encodeURIComponent(destination)}` +
-          `&waypoints=${waypoints}` +
-          `&travelmode=driving`;
-
-        window.open(mapUrl, "_blank");
-
-      } catch (err) {
-        alert("Route optimization failed.");
-        console.error(err);
-      } finally {
-        btn.innerText = oldText;
-      }
-    });
-  }, () => alert("Location permission denied."));
-}
-
+        
 
         const result = await response.json();
         let orderedStops = [];
