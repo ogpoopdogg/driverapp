@@ -161,7 +161,7 @@
       try {
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
         
-        // 1. Optimize with Routes API
+        // 1. Send to Routes API to find the best order
         const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
           method: "POST",
           headers: { 
@@ -180,6 +180,7 @@
 
         const result = await response.json();
         let finalOrder = [stops[0]];
+        
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
           const orderIndices = result.routes[0].optimizedIntermediateWaypointIndex;
           const middleStops = stops.slice(1, -1);
@@ -189,19 +190,26 @@
           finalOrder = stops; 
         }
 
-        // 2. THE FIX: Using the modern "dir" Intent URL for multiple stops
-        const origin = encodeURIComponent(finalOrder[0]);
-        const dest = encodeURIComponent(finalOrder[finalOrder.length - 1]);
-        const waypoints = finalOrder.slice(1, -1).map(s => encodeURIComponent(s)).join('|');
+        // 2. THE FIX: Using the Google Maps "Directions" Intent URL
+        // Format: maps/dir/?api=1&origin=X&destination=Y&waypoints=A|B|C
+        const originStr = encodeURIComponent(finalOrder[0]);
+        const destStr = encodeURIComponent(finalOrder[finalOrder.length - 1]);
         
-        // This specific URL format forces Google Maps to parse 'waypoints' correctly
-        const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${waypoints}&travelmode=driving`;
+        // Middle stops MUST be separated by the | character
+        const waypointsStr = finalOrder.slice(1, -1)
+          .map(s => encodeURIComponent(s))
+          .join('|');
+        
+        const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}&waypoints=${waypointsStr}&travelmode=driving`;
         
         window.open(mapUrl, '_blank');
 
       } catch (err) { 
         console.error(err);
-        alert("Error optimizing."); 
+        alert("Optimization failed. Opening raw list."); 
+        // Fallback to simple link if API fails
+        const rawUrl = "https://www.google.com/maps/dir/" + pendingJobs.map(p => encodeURIComponent(p.pickup_location)).join('/');
+        window.open(rawUrl, '_blank');
       } finally { 
         btn.innerText = originalText; 
       }
