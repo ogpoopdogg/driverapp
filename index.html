@@ -68,7 +68,6 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
     
-    /* GLO-UP FOR ROUTE NAV */
     .glow-active {
       background: var(--queue-orange) !important;
       color: #000 !important;
@@ -76,7 +75,6 @@
       animation: buttonGlow 1.5s infinite alternate;
     }
 
-    /* 20+ JOBS STYLE */
     .glow-max {
       background: var(--active-green) !important;
       color: #fff !important;
@@ -225,28 +223,18 @@
     btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
   }
 
-  function restoreToQueue(id) {
-    if(confirm("Restore this job back to the active list?")) {
-      db.ref("pickups").child(id).update({ status: 'pending' });
-      location.reload();
-    }
-  }
-
   function getNavUrl(addr, city) {
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
-  // OPTIMIZED ROUTE FUNCTION (Handles up to 25 stops)
   async function routeOptimized() {
- 
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     
     db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
-        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-        .slice(0, 25); 
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       if (pendingJobs.length === 0) return alert("No pending jobs.");
       
@@ -256,6 +244,13 @@
 
       try {
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
+        
+        // If only one stop, just open it
+        if (stops.length === 1) {
+             window.open(getNavUrl(pendingJobs[0].pickup_location, pendingJobs[0].city), '_blank');
+             return;
+        }
+
         const origin = stops[0];
         const destination = stops[stops.length - 1];
         const intermediates = stops.slice(1, -1).map(s => ({ address: s }));
@@ -289,6 +284,7 @@
           finalStops = stops;
         }
 
+        // Generate correct multi-stop URL
         const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
         window.open(mapUrl, '_blank');
 
@@ -329,7 +325,6 @@
       item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
 
       if (p.status === 'completed') {
-        item.onclick = () => viewJobInfo(id, p);
         rLog.appendChild(item);
       } else {
         pendingCount++;
@@ -355,7 +350,7 @@
             </div>
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
-          <div class="details-box"><br>
+          <div class="details-box">
             <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
             <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
             <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
@@ -369,11 +364,10 @@
       }
     });
 
-    // BUTTON LIGHT-UP LOGIC
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max');
       routeBtn.innerText = "MAX ROUTE";
-    } else if(pendingCount > 2) {
+    } else if(pendingCount > 1) {
       routeBtn.classList.remove('glow-max');
       routeBtn.classList.add('glow-active');
       routeBtn.innerText = "ROUTE NAV";
