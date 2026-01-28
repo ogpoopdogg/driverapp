@@ -161,7 +161,7 @@
       try {
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
         
-        // 1. Ask Routes API for the best order
+        // 1. Optimize with Routes API
         const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
           method: "POST",
           headers: { 
@@ -180,7 +180,6 @@
 
         const result = await response.json();
         let finalOrder = [stops[0]];
-        
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
           const orderIndices = result.routes[0].optimizedIntermediateWaypointIndex;
           const middleStops = stops.slice(1, -1);
@@ -190,16 +189,12 @@
           finalOrder = stops; 
         }
 
-        // 2. THE ULTIMATE FIX FOR MOBILE APPS: 
-        // We use the 'dir' action with the 'waypoints' parameter. 
-        // This is the universal standard for passing many stops to the app.
+        // 2. THE FIX: Using the modern "dir" Intent URL for multiple stops
         const origin = encodeURIComponent(finalOrder[0]);
         const dest = encodeURIComponent(finalOrder[finalOrder.length - 1]);
-        
-        // Join all middle stops with a pipe | character
         const waypoints = finalOrder.slice(1, -1).map(s => encodeURIComponent(s)).join('|');
         
-        // This link format forces the Google Maps App to open with ALL waypoints loaded
+        // This specific URL format forces Google Maps to parse 'waypoints' correctly
         const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${waypoints}&travelmode=driving`;
         
         window.open(mapUrl, '_blank');
