@@ -227,7 +227,7 @@
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
- async function routeOptimized() {
+async function routeOptimized() {
   const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
 
   if (!navigator.geolocation) {
@@ -247,6 +247,11 @@
 
       if (pendingJobs.length === 0) {
         alert("No pending jobs.");
+        return;
+      }
+
+      if (pendingJobs.length > 20) {
+        alert("Route limit is 20 stops.");
         return;
       }
 
@@ -274,13 +279,51 @@
                   latLng: { latitude: lat, longitude: lng }
                 }
               },
-              destination: { address: stops[stops.length - 1] },
-              intermediates: stops.slice(0, -1).map(s => ({ address: s })),
+              destination: { address: stops[0] }, // placeholder, will reorder
+              intermediates: stops.map(s => ({ address: s })),
               travelMode: "DRIVE",
               optimizeWaypointOrder: true
             })
           }
         );
+
+        const result = await response.json();
+
+        let orderedStops = [];
+
+        if (result.routes?.[0]?.optimizedIntermediateWaypointIndex) {
+          const order = result.routes[0].optimizedIntermediateWaypointIndex;
+          order.forEach(i => orderedStops.push(stops[i]));
+        } else {
+          orderedStops = stops;
+        }
+
+        // Last stop becomes destination
+        const destination = orderedStops[orderedStops.length - 1];
+        const waypoints = orderedStops
+          .slice(0, -1)
+          .map(s => encodeURIComponent(s))
+          .join("|");
+
+        const mapUrl =
+          `https://www.google.com/maps/dir/?api=1` +
+          `&origin=${lat},${lng}` +
+          `&destination=${encodeURIComponent(destination)}` +
+          `&waypoints=${waypoints}` +
+          `&travelmode=driving`;
+
+        window.open(mapUrl, "_blank");
+
+      } catch (err) {
+        alert("Route optimization failed.");
+        console.error(err);
+      } finally {
+        btn.innerText = oldText;
+      }
+    });
+  }, () => alert("Location permission denied."));
+}
+
 
         const result = await response.json();
         let orderedStops = [];
