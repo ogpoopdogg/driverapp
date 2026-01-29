@@ -33,7 +33,6 @@
       to { filter: drop-shadow(0 0 8px var(--accent)); transform: scale(1.05); }
     }
 
-    /* --- NEW: Stop Counter Styling --- */
     .stop-badge {
       background: rgba(255, 152, 0, 0.2);
       color: var(--queue-orange);
@@ -150,7 +149,26 @@
     .done-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 20px; }
     .details-box { display: none; background: #000; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid var(--review-blue); font-size: 16px; color: #eee; line-height: 1.4; }
     
-    /* DECLINE BUTTON STYLING */
+    /* DRIVER NOTES STYLE */
+    .driver-notes-box {
+      margin-top: 10px;
+      padding: 8px;
+      background: #111;
+      border: 1px dashed #444;
+      border-radius: 6px;
+    }
+    .notes-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      margin-top: 4px;
+    }
+
     .decline-btn {
       width: 100%; margin-top: 15px; padding: 12px; background: transparent; 
       color: var(--decline-red); border: 2px solid var(--decline-red); 
@@ -258,6 +276,11 @@
     btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
   }
 
+  /* NEW: SAVE DRIVER NOTES TO FIREBASE */
+  function saveNotes(id, val) {
+    db.ref("pickups").child(id).update({ other_info: val });
+  }
+
   function restoreToQueue(id) {
     if(confirm("Restore this job back to the active list?")) {
       db.ref("pickups").child(id).update({ 
@@ -267,7 +290,6 @@
     }
   }
 
-  // NEW: DECLINE FUNCTIONALITY
   function declineJob(id) {
     if(confirm("Are you sure you want to decline this pick-up?")) {
       db.ref("pickups").child(id).update({ 
@@ -280,7 +302,7 @@
   }
 
   function getNavUrl(addr, city) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr + ', ' + city)}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
   function getCurrentPosition() {
@@ -348,13 +370,13 @@
         const originParam = userLoc || encodeURIComponent(finalSequence[0]);
         const destParam = encodeURIComponent(finalSequence[finalSequence.length - 1]);
         const waypointParam = finalSequence.slice(userLoc ? 0 : 1, -1).map(s => encodeURIComponent(s)).join('|');
-        const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}&waypoints=${waypointParam}&travelmode=driving`;
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=$${originParam}&destination=${destParam}&waypoints=${waypointParam}&travelmode=driving`;
         window.open(mapUrl, '_blank');
 
       } catch (err) {
         console.error("Routing Error:", err);
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+        window.open(`https://www.google.com/maps/dir/?api=1&origin=$${fallback}`, '_blank');
       } finally {
         btn.innerText = oldText;
       }
@@ -417,10 +439,13 @@
             </div>
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
-          <div class="details-box"><br>
+          <div class="details-box">
             <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
             <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
-            <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
+            <div class="driver-notes-box">
+              <span style="color:var(--accent); font-size:11px; font-weight:900;">DRIVER NOTES:</span>
+              <textarea class="notes-input" placeholder="Type notes here..." onblur="saveNotes('${id}', this.value)">${p.other_info || ''}</textarea>
+            </div>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
