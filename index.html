@@ -213,6 +213,11 @@
       "Jess": "4444"
   };
 
+  function formatTime12(ts) {
+    const d = ts ? new Date(ts) : new Date();
+    return d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
   // --- GPS TRACKING CODE START ---
   let lastGpsUpdate = 0;
   const gpsInterval = 60000; // 1 minute
@@ -222,11 +227,12 @@
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
       if (now - lastGpsUpdate > gpsInterval) {
+        // Send timestamp formatted as 12hr AM/PM
         db.ref(`driver_locations/${currentDriver}`).update({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           last_seen: now,
-          gps_timestamp: now // Added update timestamp
+          gps_timestamp: formatTime12(now)
         });
         lastGpsUpdate = now;
       }
@@ -262,11 +268,6 @@
         attemptLogin();
     }
   });
-
-  function formatTime12(ts) {
-    const d = ts ? new Date(ts) : new Date();
-    return d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  }
 
   function formatDateShort(ts) {
     const d = new Date(ts);
