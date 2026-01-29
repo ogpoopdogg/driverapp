@@ -68,7 +68,6 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
     
-    /* GLO-UP FOR ROUTE NAV */
     .glow-active {
       background: var(--queue-orange) !important;
       color: #000 !important;
@@ -76,7 +75,6 @@
       animation: buttonGlow 1.5s infinite alternate;
     }
 
-    /* 20+ JOBS STYLE */
     .glow-max {
       background: var(--active-green) !important;
       color: #fff !important;
@@ -225,20 +223,11 @@
     btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
   }
 
-  function restoreToQueue(id) {
-    if(confirm("Restore this job back to the active list?")) {
-      db.ref("pickups").child(id).update({ status: 'pending' });
-      location.reload();
-    }
-  }
-
   function getNavUrl(addr, city) {
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
-  // OPTIMIZED ROUTE FUNCTION (Handles up to 25 stops)
   async function routeOptimized() {
- 
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     
     db.ref("pickups").once("value", async snapshot => {
@@ -329,7 +318,6 @@
       item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
 
       if (p.status === 'completed') {
-        item.onclick = () => viewJobInfo(id, p);
         rLog.appendChild(item);
       } else {
         pendingCount++;
@@ -369,7 +357,6 @@
       }
     });
 
-    // BUTTON LIGHT-UP LOGIC
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max');
       routeBtn.innerText = "MAX ROUTE";
