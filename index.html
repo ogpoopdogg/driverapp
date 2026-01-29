@@ -224,7 +224,7 @@
   }
 
   function getNavUrl(addr, city) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=$${encodeURIComponent(addr + ', ' + city)}`;
   }
 
   async function routeOptimized() {
@@ -278,12 +278,12 @@
           finalStops = stops;
         }
 
-        const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
+        const mapUrl = `https://www.google.com/maps/dir/$${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
         window.open(mapUrl, '_blank');
 
       } catch (err) {
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+        window.open(`https://www.google.com/maps/dir/$${fallback}`, '_blank');
       } finally {
         btn.innerText = oldText;
       }
