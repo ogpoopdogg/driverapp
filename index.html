@@ -33,7 +33,6 @@
       to { filter: drop-shadow(0 0 8px var(--accent)); transform: scale(1.05); }
     }
 
-    /* --- NEW: Stop Counter Styling --- */
     .stop-badge {
       background: rgba(255, 152, 0, 0.2);
       color: var(--queue-orange);
@@ -150,7 +149,6 @@
     .done-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 20px; }
     .details-box { display: none; background: #000; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid var(--review-blue); font-size: 16px; color: #eee; line-height: 1.4; }
     
-    /* DECLINE BUTTON STYLING */
     .decline-btn {
       width: 100%; margin-top: 15px; padding: 12px; background: transparent; 
       color: var(--decline-red); border: 2px solid var(--decline-red); 
@@ -215,6 +213,27 @@
       "Jess": "4444"
   };
 
+  // --- GPS TRACKING CODE START ---
+  let lastGpsUpdate = 0;
+  const gpsInterval = 60000; // 1 minute
+
+  function startContinuousTracking() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.watchPosition((pos) => {
+      const now = Date.now();
+      if (now - lastGpsUpdate > gpsInterval) {
+        db.ref(`driver_locations/${currentDriver}`).update({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          last_seen: now
+        });
+        lastGpsUpdate = now;
+      }
+    }, (err) => console.warn("GPS Error:", err.message), 
+    { enableHighAccuracy: true, maximumAge: 0 });
+  }
+  // --- GPS TRACKING CODE END ---
+
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('header-name').innerHTML = `
@@ -222,6 +241,7 @@
       ${currentDriver}
       <span id="stop-counter" class="stop-badge">0 STOPS</span>
     `;
+    startContinuousTracking(); // Trigger tracking
   }
 
   function attemptLogin() {
@@ -267,7 +287,6 @@
     }
   }
 
-  // NEW: DECLINE FUNCTIONALITY
   function declineJob(id) {
     if(confirm("Are you sure you want to decline this pick-up?")) {
       db.ref("pickups").child(id).update({ 
@@ -417,7 +436,7 @@
             </div>
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
-          <div class="details-box"><br>
+          <div class="details-box">
             <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
             <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
             <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
