@@ -68,7 +68,6 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
     
-    /* GLO-UP FOR ROUTE NAV */
     .glow-active {
       background: var(--queue-orange) !important;
       color: #000 !important;
@@ -76,7 +75,6 @@
       animation: buttonGlow 1.5s infinite alternate;
     }
 
-    /* 20+ JOBS STYLE */
     .glow-max {
       background: var(--active-green) !important;
       color: #fff !important;
@@ -238,27 +236,45 @@
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
+  // --- LOCATION AND ROUTING HELPERS ---
+
+  function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject("Geolocation not supported");
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
+        err => reject(err),
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    });
+  }
+
   async function routeOptimized() {
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
+    const btn = document.getElementById("multi-route-btn");
+    const oldText = btn.innerText;
     
     db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
-        .filter(p => p.assigned_to === currentDriver && p.status !== 'completed')
-        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-        .slice(0, 25); 
+        .filter(p => p.assigned_to === currentDriver && p.status === 'pending')
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       if (pendingJobs.length === 0) return alert("No pending jobs.");
       
-      const btn = document.getElementById("multi-route-btn");
-      const oldText = btn.innerText;
       btn.innerText = "OPTIMIZING...";
 
       try {
+        const userLoc = await getCurrentPosition().catch(() => null);
+        
+        // Prepare stops: pickup location + city
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
-        const origin = stops[0];
-        const destination = stops[stops.length - 1];
-        const intermediates = stops.slice(1, -1).map(s => ({ address: s }));
+        
+        // Origins/Destinations for the Routes API
+        // If we have GPS, that's origin. Otherwise, first stop is origin.
+        const origin = userLoc ? { location: { latLng: { latitude: parseFloat(userLoc.split(',')[0]), longitude: parseFloat(userLoc.split(',')[1]) } } } : { address: stops[0] };
+        const destination = { address: stops[stops.length - 1] };
+        const intermediates = (userLoc ? stops.slice(0, -1) : stops.slice(1, -1)).map(addr => ({ address: addr }));
 
         const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
           method: "POST",
@@ -268,8 +284,8 @@
             "X-Goog-FieldMask": "routes.optimizedIntermediateWaypointIndex"
           },
           body: JSON.stringify({
-            origin: { address: origin },
-            destination: { address: destination },
+            origin: origin,
+            destination: destination,
             intermediates: intermediates,
             travelMode: "DRIVE",
             optimizeWaypointOrder: true
@@ -277,22 +293,29 @@
         });
 
         const result = await response.json();
-        let finalStops = [];
+        let finalSequence = [];
 
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
           const order = result.routes[0].optimizedIntermediateWaypointIndex;
-          const middleStops = stops.slice(1, -1);
-          finalStops.push(origin);
-          order.forEach(idx => finalStops.push(middleStops[idx]));
-          finalStops.push(destination);
+          const middleStops = userLoc ? stops.slice(0, -1) : stops.slice(1, -1);
+          
+          if (!userLoc) finalSequence.push(stops[0]);
+          order.forEach(idx => finalSequence.push(middleStops[idx]));
+          finalSequence.push(stops[stops.length - 1]);
         } else {
-          finalStops = stops;
+          finalSequence = stops;
         }
 
-        const mapUrl = `https://www.google.com/maps/dir/${finalStops.map(s => encodeURIComponent(s)).join('/')}`;
+        // Create Google Maps App Link
+        const originParam = userLoc || encodeURIComponent(finalSequence[0]);
+        const destParam = encodeURIComponent(finalSequence[finalSequence.length - 1]);
+        const waypointParam = finalSequence.slice(userLoc ? 0 : 1, -1).map(s => encodeURIComponent(s)).join('|');
+        
+        const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}&waypoints=${waypointParam}&travelmode=driving`;
         window.open(mapUrl, '_blank');
 
       } catch (err) {
+        console.error("Routing Error:", err);
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
         window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
       } finally {
@@ -300,6 +323,8 @@
       }
     });
   }
+
+  // --- UI AND FIREBASE LOGIC ---
 
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
@@ -373,7 +398,7 @@
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max');
       routeBtn.innerText = "MAX ROUTE";
-    } else if(pendingCount > 2) {
+    } else if(pendingCount > 1) {
       routeBtn.classList.remove('glow-max');
       routeBtn.classList.add('glow-active');
       routeBtn.innerText = "ROUTE NAV";
