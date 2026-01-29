@@ -11,6 +11,7 @@
       --card-bg: #1a1a1a;
       --active-green: #4caf50;
       --review-blue: #2196f3;
+      --decline-red: #f44336;
       --text-main: #ffffff;
     }
     * { box-sizing: border-box; }
@@ -148,6 +149,15 @@
     .info-btn { flex: 0 0 75px; background: transparent; color: var(--review-blue); border: 2px solid var(--review-blue); padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 6px; cursor: pointer; }
     .done-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 20px; }
     .details-box { display: none; background: #000; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid var(--review-blue); font-size: 16px; color: #eee; line-height: 1.4; }
+    
+    /* DECLINE BUTTON STYLING */
+    .decline-btn {
+      width: 100%; margin-top: 15px; padding: 12px; background: transparent; 
+      color: var(--decline-red); border: 2px solid var(--decline-red); 
+      border-radius: 6px; font-weight: 900; font-size: 16px; cursor: pointer; 
+      text-transform: uppercase; transition: 0.3s;
+    }
+    .decline-btn:active { background: var(--decline-red); color: #000; }
 
     @keyframes pulseOrange { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.03); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
     @keyframes slideInRight { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -205,7 +215,6 @@
       "Jess": "4444"
   };
 
-  // UI Setup: Adds the stop counter badge alongside driver name
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('header-name').innerHTML = `
@@ -255,6 +264,18 @@
         status: 'pending',
         completed_at: null 
       });
+    }
+  }
+
+  // NEW: DECLINE FUNCTIONALITY
+  function declineJob(id) {
+    if(confirm("Are you sure you want to decline this pick-up?")) {
+      db.ref("pickups").child(id).update({ 
+        assigned_to: "",
+        status: "pending"
+      }).then(() => {
+        console.log("Job returned to command center.");
+      }).catch(err => alert("Error declining job: " + err.message));
     }
   }
 
@@ -340,7 +361,6 @@
     });
   }
 
-  // --- MAIN UI LOOP ---
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
     const data = snapshot.val() || {};
@@ -401,6 +421,7 @@
             <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
             <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
             <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
+            <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
             <button class="info-btn" onclick="toggleDetails(this)">INFO</button>
@@ -411,7 +432,6 @@
       }
     });
 
-    // Update stop counter text
     if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
 
     if(pendingCount >= 20) {
