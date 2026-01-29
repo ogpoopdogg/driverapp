@@ -227,8 +227,10 @@
 
   function restoreToQueue(id) {
     if(confirm("Restore this job back to the active list?")) {
-      db.ref("pickups").child(id).update({ status: 'pending' });
-      location.reload();
+      db.ref("pickups").child(id).update({ 
+        status: 'pending',
+        completed_at: null 
+      });
     }
   }
 
@@ -236,9 +238,7 @@
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
-  // OPTIMIZED ROUTE FUNCTION (Handles up to 25 stops)
   async function routeOptimized() {
- 
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     
     db.ref("pickups").once("value", async snapshot => {
@@ -322,6 +322,7 @@
       const contactName = p.name || 'No Name';
       const item = document.createElement("div"); 
       item.className = "history-item";
+      
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
@@ -329,7 +330,7 @@
       item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
 
       if (p.status === 'completed') {
-        item.onclick = () => viewJobInfo(id, p);
+        item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
         pendingCount++;
@@ -369,7 +370,6 @@
       }
     });
 
-    // BUTTON LIGHT-UP LOGIC
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max');
       routeBtn.innerText = "MAX ROUTE";
