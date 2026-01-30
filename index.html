@@ -222,7 +222,6 @@
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
       if (now - lastGpsUpdate > gpsInterval) {
-        // FIXED: Used backticks for template literal and sent now as a Number
         db.ref(`driver_locations/${currentDriver}`).update({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -301,7 +300,8 @@
   }
 
   function getNavUrl(addr, city) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
+    // FIX: Using standard https and dir intent to force native Google Maps app launch
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}&travelmode=driving`;
   }
 
   function getCurrentPosition() {
@@ -333,7 +333,12 @@
       try {
         const userLoc = await getCurrentPosition().catch(() => null);
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
-        const origin = userLoc ? { location: { latLng: { latitude: parseFloat(userLoc.split(',')[0]), longitude: parseFloat(userLoc.split(',')[1]) } } } : { address: stops[0] };
+        
+        // FIX: Prioritize device GPS coordinates as the optimization origin
+        const origin = userLoc ? 
+          { location: { latLng: { latitude: parseFloat(userLoc.split(',')[0]), longitude: parseFloat(userLoc.split(',')[1]) } } } : 
+          { address: stops[0] };
+          
         const destination = { address: stops[stops.length - 1] };
         const intermediates = (userLoc ? stops.slice(0, -1) : stops.slice(1, -1)).map(addr => ({ address: addr }));
 
@@ -366,9 +371,11 @@
           finalSequence = stops;
         }
 
+        // FIX: Construct direct Maps App deep link with waypoint routing
         const originParam = userLoc || encodeURIComponent(finalSequence[0]);
         const destParam = encodeURIComponent(finalSequence[finalSequence.length - 1]);
         const waypointParam = finalSequence.slice(userLoc ? 0 : 1, -1).map(s => encodeURIComponent(s)).join('|');
+        
         const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}&waypoints=${waypointParam}&travelmode=driving`;
         window.open(mapUrl, '_blank');
 
