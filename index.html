@@ -81,28 +81,47 @@
 
     #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
     
-    #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 120px; }
+    #history-sidebar { 
+      width: 140px; 
+      border-right: 2px solid #333; 
+      overflow-y: auto; 
+      background: #0d0d0d; 
+      padding: 6px; 
+      flex-shrink: 0; 
+      display: flex; 
+      flex-direction: column; 
+      padding-bottom: 20px; 
+    }
     
-    /* Install Button Style */
+    /* Adjusted Install Button Style to fit Sidebar */
     #pwa-install-btn {
-      position: fixed; bottom: 65px; left: 5px; width: 130px;
-      padding: 12px 5px; background: var(--install-blue); border: 2px solid #fff;
-      color: #fff; font-weight: 900; font-size: 12px; border-radius: 8px;
-      cursor: pointer; text-align: center; z-index: 101; display: none; 
+      width: 100%;
+      margin-top: auto; /* Pushes button to bottom of list */
+      margin-bottom: 10px;
+      padding: 12px 5px; 
+      background: var(--install-blue); 
+      border: 2px solid #fff;
+      color: #fff; 
+      font-weight: 900; 
+      font-size: 12px; 
+      border-radius: 8px;
+      cursor: pointer; 
+      text-align: center;
+      display: none; /* Only shows when installable */
       animation: install-pulse 2s infinite;
     }
 
     @keyframes install-pulse {
       0% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
-      50% { transform: scale(1.03); box-shadow: 0 0 15px var(--install-blue); }
+      50% { transform: scale(0.98); box-shadow: 0 0 15px var(--install-blue); }
       100% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
     }
 
     #multi-route-btn {
-      position: fixed; bottom: 10px; left: 5px; width: 130px;
+      width: 100%;
       padding: 12px 5px; background: #222; border: 2px solid #444;
       color: #666; font-weight: 900; font-size: 12px; border-radius: 8px;
-      cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
+      cursor: pointer; text-align: center; transition: all 0.3s;
     }
     
     .glow-active {
@@ -202,6 +221,7 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
+    
     <button id="pwa-install-btn">INSTALL APP</button>
     <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
@@ -235,16 +255,13 @@
   const installBtn = document.getElementById('pwa-install-btn');
 
   window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent standard prompt from appearing automatically
     e.preventDefault();
     deferredPrompt = e;
-    // Show our custom button
-    installBtn.style.display = 'block';
+    installBtn.style.display = 'block'; // Show button when browser is ready
   });
 
   installBtn.addEventListener('click', async () => {
     if (!deferredPrompt) return;
-    // Show the browser install prompt
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
