@@ -13,6 +13,7 @@
       --review-blue: #2196f3;
       --decline-red: #f44336;
       --text-main: #ffffff;
+      --install-blue: #007bff;
     }
     * { box-sizing: border-box; }
     
@@ -80,8 +81,23 @@
 
     #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
     
-    #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 80px; }
+    #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 120px; }
     
+    /* Install Button Style */
+    #pwa-install-btn {
+      position: fixed; bottom: 65px; left: 5px; width: 130px;
+      padding: 12px 5px; background: var(--install-blue); border: 2px solid #fff;
+      color: #fff; font-weight: 900; font-size: 12px; border-radius: 8px;
+      cursor: pointer; text-align: center; z-index: 101; display: none; 
+      animation: install-pulse 2s infinite;
+    }
+
+    @keyframes install-pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
+      50% { transform: scale(1.03); box-shadow: 0 0 15px var(--install-blue); }
+      100% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
+    }
+
     #multi-route-btn {
       position: fixed; bottom: 10px; left: 5px; width: 130px;
       padding: 12px 5px; background: #222; border: 2px solid #444;
@@ -186,6 +202,7 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
+    <button id="pwa-install-btn">INSTALL APP</button>
     <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
   <div id="live-feed"></div>
@@ -213,18 +230,50 @@
       "Jess": "4444"
   };
 
+  // --- PWA INSTALLATION LOGIC ---
+  let deferredPrompt;
+  const installBtn = document.getElementById('pwa-install-btn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent standard prompt from appearing automatically
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show our custom button
+    installBtn.style.display = 'block';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    // Show the browser install prompt
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User installed the PWA');
+    }
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+    deferredPrompt = null;
+  });
+
+  // Check if already in standalone mode
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    installBtn.style.display = 'none';
+  }
+
   // --- UPDATED GPS & BACKGROUND SYSTEM ---
   let lastGpsUpdate = 0;
   const gpsInterval = 60000; 
   let wakeLock = null;
 
   async function startContinuousTracking() {
-    // 1. Notification Permission
     if ("Notification" in window) {
       Notification.requestPermission();
     }
 
-    // 2. Wake Lock (Prevent sleep)
     if ('wakeLock' in navigator) {
       try {
         wakeLock = await navigator.wakeLock.request('screen');
@@ -234,7 +283,6 @@
       }
     }
 
-    // 3. GPS Tracking
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
@@ -250,7 +298,6 @@
     }, (err) => console.warn("GPS Error:", err.message), 
     { enableHighAccuracy: true, maximumAge: 0 });
   }
-  // --- END UPDATED SYSTEM ---
 
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
@@ -505,7 +552,6 @@
   function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
   setInterval(updateClock, 1000); updateClock();
 
-  // Run tracking on load
   window.onload = () => {
     if(currentDriver) startContinuousTracking();
   };
