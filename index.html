@@ -490,6 +490,20 @@
 
   function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
   setInterval(updateClock, 1000); updateClock();
+  // Keeps the screen/app from sleeping so GPS stays active
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    console.log('Wake Lock is active - GPS will stay live');
+  } catch (err) {
+    console.log('Wake Lock failed: ' + err.message);
+  }
+}
+
+// Trigger this when the driver clicks "START SHIFT" or opens the app
+requestWakeLock();
 </script>
 </body>
 </html>
