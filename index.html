@@ -239,12 +239,9 @@
     projectId: "eandccourier-36fcc"
   }); 
 
-  // 2. ADDED SERVICE WORKER REGISTRATION (for both sw.js and messaging-sw)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      // Primary SW for Caching/Install
       navigator.serviceWorker.register('sw.js').then(reg => console.log('Primary SW active'));
-      // Firebase SW for Background Notifications
       navigator.serviceWorker.register('firebase-messaging-sw.js').then(reg => console.log('Messaging SW active'));
     });
   }
@@ -253,14 +250,8 @@
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
-  const VALID_DRIVERS = {
-      "Matt": "1111",
-      "Touch": "2222",
-      "Julian": "3333",
-      "Jess": "4444"
-  };
+  const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
 
-  // --- PWA INSTALLATION LOGIC ---
   let deferredPrompt;
   const installBtn = document.getElementById('pwa-install-btn');
 
@@ -278,30 +269,18 @@
     installBtn.style.display = 'none';
   });
 
-  window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-    deferredPrompt = null;
-  });
-
-  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-    installBtn.style.display = 'none';
-  }
-
-  // --- UPDATED GPS & BACKGROUND SYSTEM ---
   let lastGpsUpdate = 0;
   const gpsInterval = 60000; 
   let wakeLock = null;
 
   async function startContinuousTracking() {
-    // ASKS FOR PERMISSION FOR THE ROBOT
+    // FIX: Ask for permission AFTER login screen clears
     if ("Notification" in window) {
-      Notification.requestPermission();
+      setTimeout(() => { Notification.requestPermission(); }, 1500);
     }
 
     if ('wakeLock' in navigator) {
-      try {
-        wakeLock = await navigator.wakeLock.request('screen');
-      } catch (err) {}
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
     }
 
     if (!navigator.geolocation) return;
@@ -316,8 +295,7 @@
         });
         lastGpsUpdate = now;
       }
-    }, (err) => {}, 
-    { enableHighAccuracy: true, maximumAge: 0 });
+    }, (err) => {}, { enableHighAccuracy: true, maximumAge: 0 });
   }
 
   if(currentDriver) {
@@ -337,9 +315,7 @@
       if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
           localStorage.setItem('ec_driver_name', driverKey);
           location.reload();
-      } else {
-          alert("Invalid Name or PIN");
-      }
+      } else { alert("Invalid Name or PIN"); }
   }
 
   document.addEventListener('keypress', (e) => {
@@ -366,19 +342,13 @@
 
   function restoreToQueue(id) {
     if(confirm("Restore this job back to the active list?")) {
-      db.ref("pickups").child(id).update({ 
-        status: 'pending',
-        completed_at: null 
-      });
+      db.ref("pickups").child(id).update({ status: 'pending', completed_at: null });
     }
   }
 
   function declineJob(id) {
     if(confirm("Are you sure you want to decline this pick-up?")) {
-      db.ref("pickups").child(id).update({ 
-        assigned_to: "",
-        status: "pending"
-      });
+      db.ref("pickups").child(id).update({ assigned_to: "", status: "pending" });
     }
   }
 
@@ -398,31 +368,23 @@
   }
 
   async function routeOptimized() {
-    const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     const btn = document.getElementById("multi-route-btn");
     const oldText = btn.innerText;
-    
     db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
       const pendingJobs = Object.values(data)
         .filter(p => p.assigned_to === currentDriver && p.status === 'pending')
         .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
       if (pendingJobs.length === 0) return alert("No pending jobs.");
-      
       btn.innerText = "OPTIMIZING...";
-
       try {
         const userLoc = await getCurrentPosition().catch(() => null);
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
-        const mapUrl = `https://www.google.com/maps/dir/${userLoc || ''}/${stops.join('/')}`;
-        window.open(mapUrl, '_blank');
+        window.open(`https://www.google.com/maps/dir/${userLoc || ''}/${stops.join('/')}`, '_blank');
       } catch (err) {
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
         window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
-      } finally {
-        btn.innerText = oldText;
-      }
+      } finally { btn.innerText = oldText; }
     });
   }
 
@@ -434,7 +396,6 @@
     const qLog = document.getElementById("queue-log");
     const routeBtn = document.getElementById("multi-route-btn");
     const stopCounter = document.getElementById("stop-counter");
-    
     feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
     const startOfToday = new Date().setHours(0,0,0,0);
     const lastDoneId = sessionStorage.getItem('last_completed_job');
@@ -443,18 +404,14 @@
     Object.entries(data).reverse().forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
-
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
-      const contactName = p.name || 'No Name';
       const item = document.createElement("div"); 
       item.className = "history-item";
-      
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
       }
-      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
-
+      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${p.name || 'No Name'}</span>`;
       if (p.status === 'completed') {
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
@@ -491,25 +448,14 @@
           <div class="card-action-row">
             <button class="info-btn" onclick="toggleDetails(this)">INFO</button>
             <button class="done-btn" onclick="markDone('${id}')">DONE</button>
-          </div>
-        `;
+          </div>`;
         feed.appendChild(card);
       }
     });
-
     if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
-
-    if(pendingCount >= 20) {
-      routeBtn.classList.add('glow-max');
-      routeBtn.innerText = "MAX ROUTE";
-    } else if(pendingCount > 1) {
-      routeBtn.classList.remove('glow-max');
-      routeBtn.classList.add('glow-active');
-      routeBtn.innerText = "ROUTE NAV";
-    } else {
-      routeBtn.classList.remove('glow-active', 'glow-max');
-      routeBtn.innerText = "ROUTE NAV";
-    }
+    if(pendingCount >= 20) { routeBtn.className = 'glow-max'; routeBtn.innerText = "MAX ROUTE"; }
+    else if(pendingCount > 1) { routeBtn.className = 'glow-active'; routeBtn.innerText = "ROUTE NAV"; }
+    else { routeBtn.className = ''; routeBtn.innerText = "ROUTE NAV"; }
   });
 
   function markDone(id) {
@@ -517,20 +463,11 @@
     const card = document.getElementById(`card-${id}`);
     if(card) card.classList.add('card-exit-success');
     sessionStorage.setItem('last_completed_job', id);
-    setTimeout(() => {
-      db.ref("pickups").child(id).update({ 
-        status: 'completed',
-        completed_at: Date.now() 
-      });
-    }, 500); 
+    setTimeout(() => { db.ref("pickups").child(id).update({ status: 'completed', completed_at: Date.now() }); }, 500); 
   }
 
   function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
   setInterval(updateClock, 1000); updateClock();
-
-  window.onload = () => {
-    if(currentDriver) startContinuousTracking();
-  };
 </script>
 </body>
 </html>
