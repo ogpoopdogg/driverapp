@@ -213,11 +213,28 @@
       "Jess": "4444"
   };
 
-  // --- GPS TRACKING CODE FIXED ---
+  // --- UPDATED GPS & BACKGROUND SYSTEM ---
   let lastGpsUpdate = 0;
-  const gpsInterval = 60000; // 1 minute
+  const gpsInterval = 60000; 
+  let wakeLock = null;
 
-  function startContinuousTracking() {
+  async function startContinuousTracking() {
+    // 1. Notification Permission
+    if ("Notification" in window) {
+      Notification.requestPermission();
+    }
+
+    // 2. Wake Lock (Prevent sleep)
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        console.log("Wake Lock active");
+      } catch (err) {
+        console.warn("Wake Lock failed:", err.message);
+      }
+    }
+
+    // 3. GPS Tracking
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
@@ -233,7 +250,7 @@
     }, (err) => console.warn("GPS Error:", err.message), 
     { enableHighAccuracy: true, maximumAge: 0 });
   }
-  // --- GPS TRACKING CODE END ---
+  // --- END UPDATED SYSTEM ---
 
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
@@ -300,7 +317,6 @@
   }
 
   function getNavUrl(addr, city) {
-    // FIX: Using standard https and dir intent to force native Google Maps app launch
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}&travelmode=driving`;
   }
 
@@ -334,7 +350,6 @@
         const userLoc = await getCurrentPosition().catch(() => null);
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
         
-        // FIX: Prioritize device GPS coordinates as the optimization origin
         const origin = userLoc ? 
           { location: { latLng: { latitude: parseFloat(userLoc.split(',')[0]), longitude: parseFloat(userLoc.split(',')[1]) } } } : 
           { address: stops[0] };
@@ -371,7 +386,6 @@
           finalSequence = stops;
         }
 
-        // FIX: Construct direct Maps App deep link with waypoint routing
         const originParam = userLoc || encodeURIComponent(finalSequence[0]);
         const destParam = encodeURIComponent(finalSequence[finalSequence.length - 1]);
         const waypointParam = finalSequence.slice(userLoc ? 0 : 1, -1).map(s => encodeURIComponent(s)).join('|');
@@ -382,7 +396,7 @@
       } catch (err) {
         console.error("Routing Error:", err);
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${fallback}`, '_blank');
+        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
       } finally {
         btn.innerText = oldText;
       }
@@ -490,20 +504,11 @@
 
   function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
   setInterval(updateClock, 1000); updateClock();
-  // Keeps the screen/app from sleeping so GPS stays active
-let wakeLock = null;
 
-async function requestWakeLock() {
-  try {
-    wakeLock = await navigator.wakeLock.request('screen');
-    console.log('Wake Lock is active - GPS will stay live');
-  } catch (err) {
-    console.log('Wake Lock failed: ' + err.message);
-  }
-}
-
-// Trigger this when the driver clicks "START SHIFT" or opens the app
-requestWakeLock();
+  // Run tracking on load
+  window.onload = () => {
+    if(currentDriver) startContinuousTracking();
+  };
 </script>
 </body>
 </html>
