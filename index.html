@@ -91,22 +91,13 @@
       flex-shrink: 0; 
       display: flex; 
       flex-direction: column; 
-    }
-
-    /* Fixed Bottom Sidebar Controls */
-    .sidebar-controls {
-      position: sticky;
-      bottom: 0;
-      background: #0d0d0d;
-      padding: 10px 0;
-      margin-top: auto;
-      border-top: 1px solid #333;
-      z-index: 10;
+      padding-bottom: 20px; 
     }
     
     #pwa-install-btn {
       width: 100%;
-      margin-bottom: 8px;
+      margin-top: auto; 
+      margin-bottom: 10px;
       padding: 12px 5px; 
       background: var(--install-blue); 
       border: 2px solid #fff;
@@ -122,7 +113,7 @@
 
     @keyframes install-pulse {
       0% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
-      50% { transform: scale(0.98); box-shadow: 0 0 10px var(--install-blue); }
+      50% { transform: scale(0.98); box-shadow: 0 0 15px var(--install-blue); }
       100% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
     }
 
@@ -231,10 +222,8 @@
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
     
-    <div class="sidebar-controls">
-      <button id="pwa-install-btn">INSTALL APP</button>
-      <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
-    </div>
+    <button id="pwa-install-btn">INSTALL APP</button>
+    <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
   <div id="live-feed"></div>
 </div>
@@ -243,21 +232,22 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-  // --- Missing Service Worker Registration ---
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('SW Registered'))
-        .catch(err => console.log('SW Error', err));
-    });
-  }
-
   firebase.initializeApp({
     apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
     authDomain: "eandccourier-36fcc.firebaseapp.com",
     databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
     projectId: "eandccourier-36fcc"
-  });
+  }); 
+
+  // 2. ADDED SERVICE WORKER REGISTRATION (for both sw.js and messaging-sw)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // Primary SW for Caching/Install
+      navigator.serviceWorker.register('sw.js').then(reg => console.log('Primary SW active'));
+      // Firebase SW for Background Notifications
+      navigator.serviceWorker.register('firebase-messaging-sw.js').then(reg => console.log('Messaging SW active'));
+    });
+  }
 
   firebase.auth().signInAnonymously();
   const db = firebase.database();
@@ -270,15 +260,15 @@
       "Jess": "4444"
   };
 
-  // --- Updated Install Logic ---
+  // --- PWA INSTALLATION LOGIC ---
   let deferredPrompt;
   const installBtn = document.getElementById('pwa-install-btn');
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    installBtn.style.display = 'block';
-  }, true); // Capture phase listener to ensure detection
+    installBtn.style.display = 'block'; 
+  });
 
   installBtn.addEventListener('click', async () => {
     if (!deferredPrompt) return;
@@ -290,33 +280,44 @@
 
   window.addEventListener('appinstalled', () => {
     installBtn.style.display = 'none';
+    deferredPrompt = null;
   });
 
-  if (window.matchMedia('(display-mode: standalone)').matches) {
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
     installBtn.style.display = 'none';
   }
 
-  // --- Original Logic Maintained ---
+  // --- UPDATED GPS & BACKGROUND SYSTEM ---
   let lastGpsUpdate = 0;
-  const gpsInterval = 60000;
+  const gpsInterval = 60000; 
   let wakeLock = null;
 
   async function startContinuousTracking() {
-    if ("Notification" in window) { Notification.requestPermission(); }
-    if ('wakeLock' in navigator) {
-      try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+    // ASKS FOR PERMISSION FOR THE ROBOT
+    if ("Notification" in window) {
+      Notification.requestPermission();
     }
+
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) {}
+    }
+
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
       if (now - lastGpsUpdate > gpsInterval) {
         db.ref(`driver_locations/${currentDriver}`).update({
-          lat: pos.coords.latitude, lng: pos.coords.longitude,
-          last_seen: now, gps_timestamp: now
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          last_seen: now,
+          gps_timestamp: now 
         });
         lastGpsUpdate = now;
       }
-    }, null, { enableHighAccuracy: true });
+    }, (err) => {}, 
+    { enableHighAccuracy: true, maximumAge: 0 });
   }
 
   if(currentDriver) {
@@ -336,11 +337,15 @@
       if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
           localStorage.setItem('ec_driver_name', driverKey);
           location.reload();
-      } else { alert("Invalid Name or PIN"); }
+      } else {
+          alert("Invalid Name or PIN");
+      }
   }
 
   document.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') attemptLogin();
+    if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
+        attemptLogin();
+    }
   });
 
   function formatTime12(ts) {
@@ -360,41 +365,72 @@
   }
 
   function restoreToQueue(id) {
-    if(confirm("Restore this job?")) {
-      db.ref("pickups").child(id).update({ status: 'pending', completed_at: null });
+    if(confirm("Restore this job back to the active list?")) {
+      db.ref("pickups").child(id).update({ 
+        status: 'pending',
+        completed_at: null 
+      });
     }
   }
 
   function declineJob(id) {
-    if(confirm("Decline this pick-up?")) {
-      db.ref("pickups").child(id).update({ assigned_to: "", status: "pending" });
+    if(confirm("Are you sure you want to decline this pick-up?")) {
+      db.ref("pickups").child(id).update({ 
+        assigned_to: "",
+        status: "pending"
+      });
     }
   }
 
   function getNavUrl(addr, city) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}&travelmode=driving`;
+    return `http://maps.google.com/maps?q=${encodeURIComponent(addr + ', ' + city)}`;
+  }
+
+  function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject("Geolocation not supported");
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
+        err => reject(err),
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    });
   }
 
   async function routeOptimized() {
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     const btn = document.getElementById("multi-route-btn");
+    const oldText = btn.innerText;
+    
     db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
-      const pendingJobs = Object.values(data).filter(p => p.assigned_to === currentDriver && p.status === 'pending');
-      if (pendingJobs.length === 0) return alert("No jobs.");
+      const pendingJobs = Object.values(data)
+        .filter(p => p.assigned_to === currentDriver && p.status === 'pending')
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+      if (pendingJobs.length === 0) return alert("No pending jobs.");
+      
       btn.innerText = "OPTIMIZING...";
+
       try {
+        const userLoc = await getCurrentPosition().catch(() => null);
         const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(stops[stops.length-1])}&waypoints=${stops.slice(0,-1).map(s=>encodeURIComponent(s)).join('|')}&travelmode=driving`, '_blank');
-      } finally { btn.innerText = "ROUTE NAV"; }
+        const mapUrl = `https://www.google.com/maps/dir/${userLoc || ''}/${stops.join('/')}`;
+        window.open(mapUrl, '_blank');
+      } catch (err) {
+        const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
+        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+      } finally {
+        btn.innerText = oldText;
+      }
     });
   }
 
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
     const data = snapshot.val() || {};
-    const feed = document.getElementById("live-feed");
-    const rLog = document.getElementById("recent-log");
+    const feed = document.getElementById("live-feed"); 
+    const rLog = document.getElementById("recent-log"); 
     const qLog = document.getElementById("queue-log");
     const routeBtn = document.getElementById("multi-route-btn");
     const stopCounter = document.getElementById("stop-counter");
@@ -408,33 +444,49 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
-      const item = document.createElement("div");
+      const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
+      const contactName = p.name || 'No Name';
+      const item = document.createElement("div"); 
       item.className = "history-item";
-      if(id === lastDoneId) { item.classList.add('just-archived'); sessionStorage.removeItem('last_completed_job'); }
-      item.innerHTML = `<strong>${p.pickup_location?.split(',')[0]}</strong><span class="history-contact">${p.name || ''}</span>`;
+      
+      if(id === lastDoneId) {
+        item.classList.add('just-archived');
+        sessionStorage.removeItem('last_completed_job');
+      }
+      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
 
       if (p.status === 'completed') {
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
-        pendingCount++; qLog.appendChild(item);
-        const card = document.createElement("div");
-        card.className = "active-card"; card.id = `card-${id}`;
+        pendingCount++;
+        qLog.appendChild(item);
+        const dims = p.dimensions || {length: "-", width: "-", height: "-"};
+        const navUrl = getNavUrl(p.pickup_location, p.city || '');
+        const card = document.createElement("div"); 
+        card.className = "active-card";
+        card.id = `card-${id}`;
         card.innerHTML = `
           <div class="card-date-badge">${formatDateShort(p.timestamp)}</div>
           <div class="card-layout">
             <div class="address-side">
-              <div class="city-tag">${p.city || ''}</div>
+              <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
               <div class="card-label">Pickup</div>
-              <div class="pickup-value">${p.pickup_location}</div>
+              <a href="${navUrl}" target="_blank" class="nav-link"><div class="pickup-value">${p.pickup_location}</div></a>
               <div class="card-label" style="margin-top:8px;">Drop</div>
               <div class="drop-value">${p.destination}</div>
+            </div>
+            <div class="specs-side">
+              <div><div class="card-label">Type</div><div class="tech-info">${p.package_type}</div></div>
+              <div><div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
           <div class="details-box">
-             <div>NOTES: ${p.other_info || 'None'}</div>
-             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
+            <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
+            <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
+            <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
+            <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
             <button class="info-btn" onclick="toggleDetails(this)">INFO</button>
@@ -444,18 +496,41 @@
         feed.appendChild(card);
       }
     });
-    if (stopCounter) stopCounter.innerText = `${pendingCount} STOPS`;
-    routeBtn.className = pendingCount > 1 ? 'glow-active' : '';
+
+    if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
+
+    if(pendingCount >= 20) {
+      routeBtn.classList.add('glow-max');
+      routeBtn.innerText = "MAX ROUTE";
+    } else if(pendingCount > 1) {
+      routeBtn.classList.remove('glow-max');
+      routeBtn.classList.add('glow-active');
+      routeBtn.innerText = "ROUTE NAV";
+    } else {
+      routeBtn.classList.remove('glow-active', 'glow-max');
+      routeBtn.innerText = "ROUTE NAV";
+    }
   });
 
   function markDone(id) {
     if(!confirm("Complete?")) return;
+    const card = document.getElementById(`card-${id}`);
+    if(card) card.classList.add('card-exit-success');
     sessionStorage.setItem('last_completed_job', id);
-    db.ref("pickups").child(id).update({ status: 'completed', completed_at: Date.now() });
+    setTimeout(() => {
+      db.ref("pickups").child(id).update({ 
+        status: 'completed',
+        completed_at: Date.now() 
+      });
+    }, 500); 
   }
 
   function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
   setInterval(updateClock, 1000); updateClock();
+
+  window.onload = () => {
+    if(currentDriver) startContinuousTracking();
+  };
 </script>
 </body>
 </html>
