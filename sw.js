@@ -1,7 +1,6 @@
 const CACHE_NAME = 'ec-driver-v1';
 const ASSETS = [
   'index.html',
-  'index2.html',
   'manifest.json',
   'icon-512.png'
 ];
