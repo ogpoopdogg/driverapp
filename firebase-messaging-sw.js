@@ -21,7 +21,7 @@ messaging.onBackgroundMessage((payload) => {
     badge: 'icon-512.png',
     vibrate: [200, 100, 200]
   };
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // Cache logic for offline use
