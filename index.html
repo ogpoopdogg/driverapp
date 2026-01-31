@@ -48,7 +48,6 @@
       vertical-align: middle;
     }
 
-    /* NEW STOPS INDICATOR STYLE */
     .new-stops-badge {
       background: rgba(76, 175, 80, 0.2);
       color: var(--active-green);
@@ -144,7 +143,6 @@
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; transition: all 0.5s ease; }
 
-    /* NEW JOB GLOW & TINT */
     .new-job-highlight {
       border: 1px solid var(--active-green) !important;
       box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
@@ -164,7 +162,12 @@
     .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
-    .job-time-stamp { font-size: 20px; font-weight: 900; color: #FFB020; text-align: center; margin: 8px 0; }
+    
+    /* MODIFIED TIME STACK STYLE */
+    .time-stack { text-align: center; margin: 8px 0; }
+    .job-time-stamp { font-size: 20px; font-weight: 900; color: #FFB020; margin-bottom: 2px; }
+    .job-date-stamp { font-size: 12px; font-weight: 900; color: #888; text-transform: uppercase; }
+
     .card-action-row { display: flex; gap: 8px; align-items: stretch; }
     .info-btn { flex: 0 0 75px; background: transparent; color: var(--review-blue); border: 2px solid var(--review-blue); padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 6px; cursor: pointer; }
     .done-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 20px; }
@@ -227,7 +230,6 @@
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
-  // NEW TRACKING VARIABLES
   let seenJobs = new Set();
   let newStopsCount = 0;
   let observer = null;
@@ -239,7 +241,6 @@
       "Jess": "4444"
   };
 
-  // --- UPDATED GPS & BACKGROUND SYSTEM ---
   let lastGpsUpdate = 0;
   const gpsInterval = 60000; 
   let wakeLock = null;
@@ -284,14 +285,12 @@
     setupIntersectionObserver();
   }
 
-  // INTERSECTION OBSERVER LOGIC
   function setupIntersectionObserver() {
     observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const cardId = entry.target.id.replace('card-', '');
           if (!seenJobs.has(cardId)) {
-            // Wait 3 seconds then mark as seen
             setTimeout(() => {
               if (document.getElementById(entry.target.id)) {
                 markAsSeen(cardId);
@@ -482,7 +481,10 @@
     const lastDoneId = sessionStorage.getItem('last_completed_job');
     let pendingCount = 0;
 
-    Object.entries(data).reverse().forEach(([id, p]) => {
+    // MODIFIED SORTING LOGIC: CHRONOLOGICAL (OLDEST TO NEWEST)
+    const sortedEntries = Object.entries(data).sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+
+    sortedEntries.forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
@@ -508,7 +510,6 @@
         const card = document.createElement("div"); 
         card.className = "active-card";
         
-        // APPLY NEW HIGHLIGHT IF NOT SEEN
         if (!seenJobs.has(id)) {
           card.classList.add('new-job-highlight');
         }
@@ -529,7 +530,10 @@
               <div><div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
-          <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
+          <div class="time-stack">
+            <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
+            <div class="job-date-stamp">${formatDateShort(p.timestamp)}</div>
+          </div>
           <div class="details-box">
             <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
             <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
