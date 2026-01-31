@@ -261,7 +261,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
   firebase.initializeApp({
     apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
@@ -269,9 +268,9 @@
     databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
     projectId: "eandccourier-36fcc"
   });
-
   firebase.auth().signInAnonymously();
   const db = firebase.database();
+
   let currentDriver = localStorage.getItem('ec_driver_name');
   let observer = null;
   let fieldSnapshots = {}; 
@@ -296,141 +295,45 @@
     }, (err) => console.warn("GPS Error:", err.message), { enableHighAccuracy: true, maximumAge: 0 });
   }
 
-  function attemptLogin() {
-    const user = document.getElementById('login-user').value.trim();
-    const pin = document.getElementById('login-pin').value.trim();
-    if(VALID_DRIVERS[user] === pin) {
-      currentDriver = user;
-      localStorage.setItem('ec_driver_name', user);
-      document.getElementById('login-overlay').style.display = 'none';
-      startApp();
-    } else { alert("Access Denied"); }
-  }
-
-  if(currentDriver) { document.getElementById('login-overlay').style.display = 'none'; startApp(); }
-
-  function startApp() {
+  if(currentDriver) {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('header-name').innerHTML = `
+      <img src="icon-512.png" class="header-logo"> ${currentDriver}
+      <span id="stop-counter" class="stop-badge">0 STOPS</span>
+      <span id="new-stops-badge" class="new-stops-badge">0 NEW</span>
+    `;
     startContinuousTracking();
-    updateClock(); setInterval(updateClock, 1000);
-    renderFeed();
+    setupIntersectionObserver();
   }
 
-  function renderFeed() {
-    const feed = document.getElementById("live-feed");
-    const queueLog = document.getElementById("queue-log");
-    const recentLog = document.getElementById("recent-log");
-
-    db.ref("pickups").on("value", (snapshot) => {
-      const data = snapshot.val() || {};
-      feed.innerHTML = "";
-      queueLog.innerHTML = "";
-      recentLog.innerHTML = "";
-
-      const jobs = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-      jobs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-
-      let pendingCount = 0;
-      const today = new Date().setHours(0,0,0,0);
-
-      jobs.forEach(job => {
-        const { id, status, assigned_to, name, pickup_location, destination, city, type, qty, extra, l, w, h, po, info, created_at, completed_at, updated_fields } = job;
-        
-        if (status === 'completed' && completed_at >= today && assigned_to === currentDriver) {
-          const hItem = document.createElement('div');
-          hItem.className = 'history-item';
-          if(sessionStorage.getItem('last_completed_job') === id) { hItem.classList.add('just-archived'); sessionStorage.removeItem('last_completed_job'); }
-          hItem.innerHTML = `<span class="history-contact">${name || 'JOB'}</span><span class="history-package">${qty || 1} ${type || 'BOX'}</span>`;
-          recentLog.appendChild(hItem);
-        }
-
-        if (status === 'assigned' && assigned_to === currentDriver) {
-          pendingCount++;
-          const qItem = document.createElement('div');
-          qItem.className = 'history-item';
-          qItem.style.borderLeftColor = 'var(--queue-orange)';
-          qItem.innerHTML = `<span class="history-contact" style="color:var(--queue-orange)">${(name || 'JOB').substring(0,12)}</span><span class="history-package">${city || '??'}</span>`;
-          qItem.onclick = () => document.getElementById(`card-${id}`).scrollIntoView({ behavior: 'smooth' });
-          queueLog.appendChild(qItem);
-
-          const card = document.createElement("div");
-          card.id = `card-${id}`;
-          card.className = "active-card";
-          
-          const isNew = (Date.now() - created_at) < 15000;
-          if(isNew) card.classList.add('new-job-highlight');
-
-          const hasUpdate = updated_fields && Object.keys(updated_fields).length > 0;
-          if(hasUpdate) card.classList.add('has-update');
-
-          const timeStr = new Date(created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-          card.innerHTML = `
-            <div class="card-date-badge">
-              RECEIVED ${timeStr}
-              ${hasUpdate ? '<span class="update-badge">UPDATED</span>' : ''}
-            </div>
-            
-            <div class="card-layout">
-              <div class="address-side">
-                <div class="city-tag">${city || 'CITY'}</div>
-                <div class="card-label">PICKUP</div>
-                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup_location + ' ' + city)}" class="nav-link" target="_blank">
-                  <div class="pickup-value">${pickup_location}</div>
-                </a>
-                <div style="height:8px"></div>
-                <div class="card-label">DESTINATION</div>
-                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}" class="nav-link" target="_blank">
-                  <div class="drop-value">${destination}</div>
-                </a>
-              </div>
-              
-              <div class="specs-side">
-                <div class="card-label">CARGO</div>
-                <div class="tech-info">
-                  <span class="${updated_fields?.qty ? 'field-highlight' : ''}">${qty || 1}</span> 
-                  <span class="${updated_fields?.type ? 'field-highlight' : ''}">${type || 'BOX'}</span>
-                </div>
-                ${extra ? `<div class="tech-info" style="font-size: 11px; color: var(--accent); margin-top: -4px;">${extra}</div>` : ''}
-                
-                <div class="tech-info" style="margin-top:4px">
-                  <span class="dim-x">${l || 0}</span>x<span class="dim-x">${w || 0}</span>x<span class="dim-x">${h || 0}</span>
-                </div>
-                
-                <div class="time-stack">
-                  <div class="card-label">PO/REF</div>
-                  <div style="font-size:14px; font-weight:900;">${po || 'NONE'}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="details-box" id="details-${id}">
-              <div style="color:var(--accent); font-weight:900; margin-bottom:4px;">NOTES:</div>
-              ${info || 'No driver notes provided.'}
-              <button class="decline-btn" onclick="declineJob('${id}')">Decline Job</button>
-            </div>
-
-            <div class="card-action-row">
-              <button class="info-btn" onclick="toggleDetails(this, '${id}')">INFO</button>
-              <button class="done-btn" onclick="markDone('${id}')">DONE</button>
-            </div>
-          `;
-          feed.appendChild(card);
+  function setupIntersectionObserver() {
+    observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if(entry.isIntersecting) {
+          const id = entry.target.id.replace('card-', '');
+          entry.target.classList.remove('new-job-highlight', 'has-update');
         }
       });
+    }, { threshold: 0.5 });
+  }
 
-      const routeBtn = document.getElementById('multi-route-btn');
-      if(pendingCount >= 20) {
-        routeBtn.classList.add('glow-max');
-        routeBtn.innerText = "MAX ROUTE";
-      } else if(pendingCount > 1) {
-        routeBtn.classList.remove('glow-max');
-        routeBtn.classList.add('glow-active');
-        routeBtn.innerText = "ROUTE NAV";
-      } else {
-        routeBtn.classList.remove('glow-active', 'glow-max');
-        routeBtn.innerText = "ROUTE NAV";
-      }
-    });
+  function attemptLogin() {
+    const user = document.getElementById('login-user').value.trim();
+    const pin = document.getElementById('login-pin').value;
+    if(VALID_DRIVERS[user] === pin) {
+      localStorage.setItem('ec_driver_name', user);
+      location.reload();
+    } else { alert("Login Failed"); }
+  }
+
+  function formatTime(ts) {
+    if(!ts) return "";
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  function getUpdateClass(jobId, field, value) {
+    if (!fieldSnapshots[jobId]) return '';
+    return fieldSnapshots[jobId][field] !== value ? 'field-highlight' : '';
   }
 
   function toggleDetails(btn, id) {
@@ -438,13 +341,128 @@
     const isVisible = box.style.display === 'block';
     box.style.display = isVisible ? 'none' : 'block';
     btn.innerText = isVisible ? 'INFO' : 'CLOSE';
-    btn.style.background = isVisible ? 'transparent' : 'var(--review-blue)';
-    btn.style.color = isVisible ? 'var(--review-blue)' : '#000';
-    
     if(!isVisible) {
-      db.ref("pickups").child(id).child("updated_fields").remove();
+      const card = document.getElementById(`card-${id}`);
+      card.classList.remove('has-update');
     }
   }
+
+  function updateNewStopsCountUI() {
+    const badge = document.getElementById('new-stops-badge');
+    const newCount = document.querySelectorAll('.new-job-highlight, .has-update').length;
+    if(badge) {
+      badge.innerText = `${newCount} NEW`;
+      badge.style.display = newCount > 0 ? 'inline-block' : 'none';
+    }
+  }
+
+  db.ref("pickups").on("value", (snap) => {
+    const data = snap.val() || {};
+    const feed = document.getElementById("live-feed");
+    const queueLog = document.getElementById("queue-log");
+    const recentLog = document.getElementById("recent-log");
+    const stopCounter = document.getElementById("stop-counter");
+    const routeBtn = document.getElementById("multi-route-btn");
+
+    feed.innerHTML = ""; queueLog.innerHTML = ""; recentLog.innerHTML = "";
+    let pendingCount = 0;
+    
+    const sorted = Object.entries(data).sort((a,b) => (b[1].created_at || 0) - (a[1].created_at || 0));
+
+    sorted.forEach(([id, job]) => {
+      const isMine = job.assigned_to === currentDriver;
+      const isCompleted = job.status === 'completed';
+
+      if(isMine && isCompleted) {
+        const hItem = document.createElement("div");
+        hItem.className = "history-item";
+        if(id === sessionStorage.getItem('last_completed_job')) hItem.classList.add('just-archived');
+        hItem.innerHTML = `<span class="history-contact">${job.name || '???'}</span><span class="history-package">${job.type || 'BOX'}</span>`;
+        recentLog.appendChild(hItem);
+      }
+
+      if(isMine && !isCompleted) {
+        pendingCount++;
+        const qItem = document.createElement("div");
+        qItem.className = "history-item";
+        qItem.style.borderLeftColor = "var(--queue-orange)";
+        qItem.innerHTML = `<span class="history-contact" style="color:var(--queue-orange)">${job.name || '???'}</span><span class="history-package">${job.city || 'WPG'}</span>`;
+        qItem.onclick = () => document.getElementById(`card-${id}`).scrollIntoView({ behavior: 'smooth' });
+        queueLog.appendChild(qItem);
+
+        const card = document.createElement("div");
+        card.id = `card-${id}`;
+        card.className = "active-card";
+        
+        const isNew = (Date.now() - job.created_at) < 30000;
+        if(isNew) card.classList.add('new-job-highlight');
+
+        const nameClass = getUpdateClass(id, 'name', job.name);
+        const pickupClass = getUpdateClass(id, 'pickup_location', job.pickup_location);
+        const dropClass = getUpdateClass(id, 'destination', job.destination);
+
+        card.innerHTML = `
+          <div class="card-date-badge">JOB ID: ${id.substring(id.length-4)} ${isNew ? '<span class="update-badge">NEW DISPATCH</span>' : ''}</div>
+          <div class="card-layout">
+            <div class="address-side">
+              <span class="city-tag">${job.city || 'WPG'}</span>
+              <span class="card-label">PICKUP FROM</span>
+              <div class="pickup-value ${nameClass}">${job.name || 'UNKNOWN'}</div>
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.pickup_location + ' ' + (job.city || ''))}" class="nav-link">
+                <div class="drop-value ${pickupClass}" style="color:var(--accent); font-size:16px;">${job.pickup_location}</div>
+              </a>
+              <div style="margin-top:8px;"></div>
+              <span class="card-label">DELIVER TO</span>
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.destination)}" class="nav-link">
+                <div class="drop-value ${dropClass}">${job.destination}</div>
+              </a>
+            </div>
+            <div class="specs-side">
+              <div class="time-stack">
+                <div class="job-time-stamp">${formatTime(job.created_at)}</div>
+                <div class="job-date-stamp">${new Date(job.created_at).toLocaleDateString()}</div>
+              </div>
+              <div class="tech-info">
+                ${job.qty || '1'} <span class="dim-x">X</span> ${job.type || 'BOX'}<br>
+                <span style="font-size:11px; color:#888;">${job.l || 0}"x${job.w || 0}"x${job.h || 0}"</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="details-${id}" class="details-box">
+             <strong>REFERENCE:</strong> ${job.po || 'NONE'}<br>
+             <strong>QTY:</strong> ${job.qty || '1'}<br>
+             <strong>EXTRA:</strong> ${job.extra || 'NONE'}<br>
+             <hr style="border:0; border-top:1px solid #333; margin:8px 0;">
+             <strong>DISPATCH NOTES:</strong><br>${job.info || 'No special instructions.'}
+             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE / ERROR</button>
+          </div>
+
+          <div class="card-action-row">
+            <button class="info-btn" onclick="toggleDetails(this, '${id}')">INFO</button>
+            <button class="done-btn" onclick="markDone('${id}')">DONE</button>
+          </div>
+        `;
+        feed.appendChild(card);
+        if (observer) observer.observe(card);
+      }
+    });
+
+    updateNewStopsCountUI();
+    if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
+
+    if(pendingCount >= 20) {
+      routeBtn.classList.add('glow-max');
+      routeBtn.innerText = "MAX ROUTE";
+    } else if(pendingCount > 1) {
+      routeBtn.classList.remove('glow-max');
+      routeBtn.classList.add('glow-active');
+      routeBtn.innerText = "ROUTE NAV";
+    } else {
+      routeBtn.classList.remove('glow-active', 'glow-max');
+      routeBtn.innerText = "ROUTE NAV";
+    }
+  });
 
   function markDone(id) {
     if(!confirm("Complete?")) return;
@@ -452,33 +470,39 @@
     if(card) card.classList.add('card-exit-success');
     sessionStorage.setItem('last_completed_job', id);
     setTimeout(() => {
-      db.ref("pickups").child(id).update({ status: 'completed', completed_at: Date.now() });
+      db.ref("pickups").child(id).update({ 
+        status: 'completed',
+        completed_at: Date.now() 
+      });
     }, 500); 
-  }
-
-  function declineJob(id) {
-    const reason = prompt("Reason for declining?");
-    if(!reason) return;
-    db.ref("pickups").child(id).update({ 
-      status: 'pending', 
-      assigned_to: 'Unassigned',
-      info: `DECLINED BY ${currentDriver}: ${reason}` 
-    });
-  }
-
-  function routeOptimized() {
-    db.ref("pickups").once("value", (snapshot) => {
-      const data = snapshot.val() || {};
-      const activeJobs = Object.values(data).filter(j => j.status === 'assigned' && j.assigned_to === currentDriver);
-      if(activeJobs.length === 0) return alert("No active jobs to route.");
-      const dests = activeJobs.map(j => encodeURIComponent(j.pickup_location + ' ' + (j.city || ''))).join('/');
-      window.open(`https://www.google.com/maps/dir/${dests}`, '_blank');
-    });
   }
 
   function updateClock() {
     const now = new Date();
-    document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+  setInterval(updateClock, 1000); updateClock();
+
+  function routeOptimized() {
+    db.ref("pickups").once("value", (snap) => {
+      const data = snap.val() || {};
+      const locs = Object.values(data)
+        .filter(j => j.assigned_to === currentDriver && j.status !== 'completed')
+        .map(j => j.pickup_location + " " + (j.city || ""));
+      if(locs.length === 0) return alert("No active stops");
+      const url = `https://www.google.com/maps/dir/Current+Location/${locs.map(encodeURIComponent).join('/')}`;
+      window.open(url, '_blank');
+    });
+  }
+
+  function declineJob(id) {
+    const reason = prompt("Reason for decline/error:");
+    if(!reason) return;
+    db.ref("pickups").child(id).update({
+      status: 'pending',
+      assigned_to: 'Unassigned',
+      info: `DECLINED BY ${currentDriver}: ${reason}`
+    });
   }
 </script>
 
