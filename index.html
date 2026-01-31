@@ -642,12 +642,19 @@
               <div class="card-label" style="margin-top:8px;">Drop</div>
               <div class="drop-value ${needsAlert && changedFields.includes('dest') ? 'field-highlight' : ''}">${p.destination}</div>
             </div>
-            <div class="specs-side">
+           <div class="specs-side">
   <div>
     <div class="card-label">Type</div>
     <div class="tech-info ${needsAlert && (changedFields.includes('type') || changedFields.includes('qty')) ? 'field-highlight' : ''}">
       ${p.qty || 1} ${p.package_type}
     </div>
+  </div>
+  ${p.extra ? `<div><div class="tech-info ${needsAlert && changedFields.includes('extra') ? 'field-highlight' : ''}" style="font-size: 11px; color: var(--accent); margin-top: -6px;">${p.extra}</div></div>` : ''}
+  <div>
+    <div class="card-label">Size</div>
+    <div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div>
+  </div>
+</div>
   </div>
   ${p.extra ? `<div><div class="tech-info ${needsAlert && changedFields.includes('extra') ? 'field-highlight' : ''}" style="font-size: 11px; color: var(--accent); margin-top: -6px;">${p.extra}</div></div>` : ''}
   <div>
