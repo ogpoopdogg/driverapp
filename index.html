@@ -26,11 +26,17 @@
       animation: update-glow 1.5s infinite alternate !important;
     }
 
-    /* FIELD HIGHLIGHTING */
+    /* FIELD SPECIFIC HIGHLIGHTING */
     .field-highlight {
       color: var(--update-blue) !important;
       text-shadow: 0 0 8px var(--update-blue);
       font-weight: bold;
+      animation: field-pulse 1.5s infinite alternate;
+    }
+
+    @keyframes field-pulse {
+      from { opacity: 0.7; transform: scale(1); }
+      to { opacity: 1; transform: scale(1.02); }
     }
 
     .update-badge {
@@ -349,7 +355,7 @@
     });
   }
 
-  // Handle clearing highlights when card is acknowledged/touched
+  // Handle clearing highlights ONLY when card is acknowledged/touched
   function acknowledgeUpdate(id) {
     sessionStorage.setItem(`ack_update_${id}`, 'true');
     const card = document.getElementById(`card-${id}`);
@@ -357,7 +363,7 @@
     
     if(card) {
       card.classList.remove('has-update');
-      // Remove specific field highlights
+      // Remove specific field highlights on interaction
       card.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
     }
     if(mini) mini.classList.remove('has-update');
@@ -422,7 +428,7 @@
     box.style.display = isOpening ? "block" : "none";
     btn.innerText = isOpening ? "HIDE" : "INFO";
     
-    // If user closes card, clear field highlights
+    // Clear update highlights when closing
     if(!isOpening) {
         acknowledgeUpdate(id);
     }
@@ -526,7 +532,7 @@
       } catch (err) {
         console.error("Routing Error:", err);
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+        window.open(`https://www.google.com/maps/dir/?api=1&waypoints=${fallback}`, '_blank');
       } finally {
         btn.innerText = oldText;
       }
@@ -553,8 +559,8 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
-      // FIELD-LEVEL DETECTION
-      const fields = {
+      // FIELD-LEVEL CHANGE DETECTION
+      const currentFields = {
           addr: p.pickup_location,
           dest: p.destination,
           contact: p.name,
@@ -566,12 +572,16 @@
       const changedFields = [];
       const acked = sessionStorage.getItem(`ack_update_${id}`);
 
+      // Compare against historical snapshot
       if (fieldSnapshots[id]) {
-          Object.keys(fields).forEach(key => {
-              if (fieldSnapshots[id][key] !== fields[key]) changedFields.push(key);
+          Object.keys(currentFields).forEach(key => {
+              if (fieldSnapshots[id][key] !== currentFields[key]) {
+                changedFields.push(key);
+                sessionStorage.removeItem(`ack_update_${id}`); // Force highlight if new change occurs
+              }
           });
       }
-      fieldSnapshots[id] = { ...fields };
+      fieldSnapshots[id] = { ...currentFields };
 
       const needsAlert = changedFields.length > 0 && !acked;
 
@@ -588,7 +598,7 @@
       
       if(needsAlert) item.classList.add('has-update');
 
-      // Add Package Type to Mini Card
+      // Enhanced sidebar display
       item.innerHTML = `
         <strong>${shortAddr}</strong>
         <span class="history-contact">${contactName}</span>
@@ -607,7 +617,7 @@
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
-        card.onclick = () => acknowledgeUpdate(id);
+        card.onclick = () => acknowledgeUpdate(id); // Global click to clear
         
         if (!p.seen_by || !p.seen_by[currentDriver]) {
           card.classList.add('new-job-highlight');
