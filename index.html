@@ -13,12 +13,40 @@
       --review-blue: #2196f3;
       --decline-red: #f44336;
       --text-main: #ffffff;
+      --update-blue: #00d4ff;
     }
     * { box-sizing: border-box; }
     
     html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
     
+    /* NEW INFO ANIMATIONS */
+    .has-update {
+      border: 2px solid var(--update-blue) !important;
+      animation: update-glow 1.5s infinite alternate !important;
+    }
+
+    .update-badge {
+      background: var(--update-blue);
+      color: #000;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      animation: pulse-update 0.5s infinite alternate;
+    }
+
+    @keyframes update-glow {
+      from { box-shadow: 0 0 5px var(--update-blue); }
+      to { box-shadow: 0 0 15px var(--update-blue); }
+    }
+
+    @keyframes pulse-update {
+      from { opacity: 0.7; }
+      to { opacity: 1; }
+    }
+
     .header-logo {
       height: 30px; 
       width: auto;
@@ -130,20 +158,8 @@
     .section-label-pending { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--queue-orange); border-bottom: 2px solid #333; animation: pulseOrange 2s infinite ease-in-out; }
     .section-label-done { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--active-green); border-bottom: 2px solid #333; }
     
-    .history-item { position: relative; background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
+    .history-item { background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
     .just-archived { animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 10; border-left-width: 6px; }
-
-    /* New Info Badge Styles */
-    .edit-notif {
-      position: absolute; top: 2px; right: 5px; font-size: 9px; font-weight: 900; color: #fff;
-      background: var(--review-blue); padding: 1px 4px; border-radius: 3px;
-      animation: infoPulse 1.5s infinite;
-    }
-    @keyframes infoPulse {
-      0% { opacity: 0.7; transform: scale(0.95); }
-      50% { opacity: 1; transform: scale(1.05); }
-      100% { opacity: 0.7; transform: scale(0.95); }
-    }
 
     @keyframes proArchivePop {
       0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); }
@@ -163,7 +179,7 @@
 
     @keyframes softPulse { 0% { border-color: #444; } 50% { border-color: #666; } 100% { border-color: #444; } }
     .card-exit-success { transform: scale(0.2) translateX(-500px); opacity: 0; filter: brightness(2) blur(5px); pointer-events: none; }
-    .card-date-badge { font-size: 10px; font-weight: 900; color: #666; text-transform: uppercase; margin-bottom: 4px; }
+    .card-date-badge { font-size: 10px; font-weight: 900; color: #666; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; }
     .card-layout { display: flex; justify-content: space-between; gap: 8px; }
     .address-side { flex: 1; display: flex; flex-direction: column; gap: 2px; }
     .specs-side { width: 90px; text-align: right; display: flex; flex-direction: column; gap: 8px; }
@@ -171,7 +187,7 @@
     .nav-link { text-decoration: none; color: inherit; }
     .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px; }
     .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
-    .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
+    .drop-value { font-size: 18px; font-800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
     
@@ -242,6 +258,7 @@
   let currentDriver = localStorage.getItem('ec_driver_name');
 
   let observer = null;
+  let jobSnapshots = {}; // Tracks content "fingerprints" to detect updates
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -323,6 +340,17 @@
     });
   }
 
+  // Handle clearing the "NEW INFO" alert when driver clicks/touches card
+  function acknowledgeUpdate(id) {
+    sessionStorage.setItem(`ack_update_${id}`, 'true');
+    const card = document.getElementById(`card-${id}`);
+    const mini = document.getElementById(`mini-${id}`);
+    if(card) card.classList.remove('has-update');
+    if(mini) mini.classList.remove('has-update');
+    const badge = document.getElementById(`badge-${id}`);
+    if(badge) badge.style.display = 'none';
+  }
+
   function updateNewStopsCountUI() {
     const newCards = document.querySelectorAll('.new-job-highlight');
     const badge = document.getElementById('new-stops-badge');
@@ -381,19 +409,6 @@
         assigned_to: "",
         status: "pending"
       }).catch(err => alert("Error declining job: " + err.message));
-    }
-  }
-
-  /* NEW: Notification Dismissal Logic */
-  function scrollToJob(id) {
-    const ackKey = `ack_${id}`;
-    localStorage.setItem(ackKey, Date.now()); // Mark as acknowledged locally
-    
-    const card = document.getElementById(`card-${id}`);
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const notif = document.querySelector(`#q-item-${id} .edit-notif`);
-      if (notif) notif.remove(); // Instantly hide the "New Info" text
     }
   }
 
@@ -504,47 +519,53 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
+      // DETECT DATA UPDATES (Logic for "New Info" Trigger)
+      const contentStr = JSON.stringify({ n: p.name, o: p.other_info, po: p.po_number, d: p.destination, p: p.pickup_location });
+      const hasContentChanged = jobSnapshots[id] && jobSnapshots[id] !== contentStr;
+      jobSnapshots[id] = contentStr;
+
+      // If change detected, trigger alert unless already acknowledged
+      const needsAlert = hasContentChanged && !sessionStorage.getItem(`ack_update_${id}`);
+
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const contactName = p.name || 'No Name';
       const item = document.createElement("div"); 
       item.className = "history-item";
-      item.id = `q-item-${id}`;
+      item.id = `mini-${id}`;
       
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
       }
+      
+      if(needsAlert) item.classList.add('has-update');
 
-      /* NEW: Dynamic Info Badge Detection */
-      let editBadge = "";
-      const lastAck = localStorage.getItem(`ack_${id}`) || 0;
-      if (p.last_edited && p.last_edited > lastAck) {
-        editBadge = `<span class="edit-notif">NEW INFO</span>`;
-      }
-
-      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>${editBadge}`;
+      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
 
       if (p.status === 'completed') {
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
         pendingCount++;
-        item.onclick = () => scrollToJob(id); // Integration point for dismissal
         qLog.appendChild(item);
-        
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
+        card.onclick = () => acknowledgeUpdate(id); // Ack on touch
         
-        const hasBeenSeen = p.seen_by && p.seen_by[currentDriver];
-        if (!hasBeenSeen) {
+        if (!p.seen_by || !p.seen_by[currentDriver]) {
           card.classList.add('new-job-highlight');
         }
 
+        if(needsAlert) card.classList.add('has-update');
+
         card.id = `card-${id}`;
         card.innerHTML = `
-          <div class="card-date-badge">${formatDateShort(p.timestamp)}</div>
+          <div class="card-date-badge">
+            ${formatDateShort(p.timestamp)}
+            ${needsAlert ? `<span id="badge-${id}" class="update-badge">NEW INFO</span>` : ''}
+          </div>
           <div class="card-layout">
             <div class="address-side">
               <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
