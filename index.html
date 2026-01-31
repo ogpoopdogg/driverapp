@@ -17,154 +17,47 @@
       --install-blue: #007bff;
     }
     * { box-sizing: border-box; }
-    
     html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
     
-    .header-logo {
-      height: 30px; 
-      width: auto;
-      margin-right: 12px;
-      vertical-align: middle;
-      filter: drop-shadow(0 0 5px var(--accent));
-      animation: logo-glow 2s infinite alternate;
-    }
+    .header-logo { height: 30px; width: auto; margin-right: 12px; vertical-align: middle; filter: drop-shadow(0 0 5px var(--accent)); animation: logo-glow 2s infinite alternate; }
+    @keyframes logo-glow { from { filter: drop-shadow(0 0 2px var(--accent)); transform: scale(1); } to { filter: drop-shadow(0 0 8px var(--accent)); transform: scale(1.05); } }
 
-    @keyframes logo-glow {
-      from { filter: drop-shadow(0 0 2px var(--accent)); transform: scale(1); }
-      to { filter: drop-shadow(0 0 8px var(--accent)); transform: scale(1.05); }
-    }
+    .stop-badge { background: rgba(255, 152, 0, 0.2); color: var(--queue-orange); border: 1px solid var(--queue-orange); padding: 2px 10px; border-radius: 20px; font-size: 14px; margin-left: 10px; font-weight: 800; letter-spacing: 0.5px; animation: counter-glow 2s infinite alternate ease-in-out; display: inline-block; vertical-align: middle; }
+    @keyframes counter-glow { from { box-shadow: 0 0 2px var(--queue-orange); border-color: rgba(255,152,0,0.5); } to { box-shadow: 0 0 10px var(--queue-orange); border-color: var(--queue-orange); } }
 
-    .stop-badge {
-      background: rgba(255, 152, 0, 0.2);
-      color: var(--queue-orange);
-      border: 1px solid var(--queue-orange);
-      padding: 2px 10px;
-      border-radius: 20px;
-      font-size: 14px;
-      margin-left: 10px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      animation: counter-glow 2s infinite alternate ease-in-out;
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    @keyframes counter-glow {
-      from { box-shadow: 0 0 2px var(--queue-orange); border-color: rgba(255,152,0,0.5); }
-      to { box-shadow: 0 0 10px var(--queue-orange); border-color: var(--queue-orange); }
-    }
-
-    #login-overlay {
-      position: fixed; inset: 0; background: #000; z-index: 999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
-    }
-    .login-box {
-      width: 100%; max-width: 350px; background: #111; padding: 30px; 
-      border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      text-align: center;
-    }
+    #login-overlay { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+    .login-box { width: 100%; max-width: 350px; background: #111; padding: 30px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
     .login-box h2 { color: var(--accent); margin-top: 0; font-weight: 900; letter-spacing: 1px; }
-    .login-input {
-      width: 100%; padding: 15px; margin: 10px 0; background: #222; border: 1px solid #444;
-      color: #fff; border-radius: 8px; font-size: 18px; outline: none; transition: 0.3s;
-    }
+    .login-input { width: 100%; padding: 15px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 18px; outline: none; transition: 0.3s; }
     .login-input:focus { border-color: var(--accent); }
-    .login-submit {
-      width: 100%; padding: 15px; margin-top: 15px; background: var(--accent); border: none;
-      color: #000; font-weight: 900; font-size: 18px; border-radius: 8px; cursor: pointer;
-      text-transform: uppercase;
-    }
+    .login-submit { width: 100%; padding: 15px; margin-top: 15px; background: var(--accent); border: none; color: #000; font-weight: 900; font-size: 18px; border-radius: 8px; cursor: pointer; text-transform: uppercase; }
 
     header { padding: 8px 15px; background: #000; border-bottom: 3px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-    h1 { margin: 0; color: var(--accent); font-size: 22px; font-weight: 900; display: flex; align-items: center; }
+    h1 { margin: 0; color: var(--accent); font-size: 22px; font-weight: 900; display: flex; align-items: center; cursor: pointer; }
     #clock { font-size: 18px; color: var(--accent); font-weight: bold; }
 
     #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
+    #history-sidebar { width: 140px; border-right: 2px solid #333; overflow-y: auto; background: #0d0d0d; padding: 6px; flex-shrink: 0; display: flex; flex-direction: column; padding-bottom: 20px; }
     
-    #history-sidebar { 
-      width: 140px; 
-      border-right: 2px solid #333; 
-      overflow-y: auto; 
-      background: #0d0d0d; 
-      padding: 6px; 
-      flex-shrink: 0; 
-      display: flex; 
-      flex-direction: column; 
-      padding-bottom: 20px; 
-    }
-    
-    #pwa-install-btn {
-      width: 100%;
-      margin-top: auto; 
-      margin-bottom: 10px;
-      padding: 12px 5px; 
-      background: var(--install-blue); 
-      border: 2px solid #fff;
-      color: #fff; 
-      font-weight: 900; 
-      font-size: 12px; 
-      border-radius: 8px;
-      cursor: pointer; 
-      text-align: center;
-      display: none; 
-      animation: install-pulse 2s infinite;
-    }
+    #pwa-install-btn { width: 100%; margin-top: auto; margin-bottom: 10px; padding: 12px 5px; background: var(--install-blue); border: 2px solid #fff; color: #fff; font-weight: 900; font-size: 12px; border-radius: 8px; cursor: pointer; text-align: center; display: none; animation: install-pulse 2s infinite; }
+    @keyframes install-pulse { 0% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); } 50% { transform: scale(0.98); box-shadow: 0 0 15px var(--install-blue); } 100% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); } }
 
-    @keyframes install-pulse {
-      0% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
-      50% { transform: scale(0.98); box-shadow: 0 0 15px var(--install-blue); }
-      100% { transform: scale(1); box-shadow: 0 0 0px var(--install-blue); }
-    }
-
-    #multi-route-btn {
-      width: 100%;
-      padding: 12px 5px; background: #222; border: 2px solid #444;
-      color: #666; font-weight: 900; font-size: 12px; border-radius: 8px;
-      cursor: pointer; text-align: center; transition: all 0.3s;
-    }
-    
-    .glow-active {
-      background: var(--queue-orange) !important;
-      color: #000 !important;
-      border-color: #fff !important;
-      animation: buttonGlow 1.5s infinite alternate;
-    }
-
-    .glow-max {
-      background: var(--active-green) !important;
-      color: #fff !important;
-      border: 2px solid #fff !important;
-      transform: scale(1.1);
-      animation: buttonMaxGlow 0.8s infinite alternate !important;
-    }
-
-    @keyframes buttonGlow {
-      from { box-shadow: 0 0 5px var(--queue-orange); transform: scale(1); }
-      to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); }
-    }
-
-    @keyframes buttonMaxGlow {
-      from { box-shadow: 0 0 10px var(--active-green); }
-      to { box-shadow: 0 0 30px #fff; }
-    }
+    #multi-route-btn { width: 100%; padding: 12px 5px; background: #222; border: 2px solid #444; color: #666; font-weight: 900; font-size: 12px; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.3s; }
+    .glow-active { background: var(--queue-orange) !important; color: #000 !important; border-color: #fff !important; animation: buttonGlow 1.5s infinite alternate; }
+    .glow-max { background: var(--active-green) !important; color: #fff !important; border: 2px solid #fff !important; transform: scale(1.1); animation: buttonMaxGlow 0.8s infinite alternate !important; }
+    @keyframes buttonGlow { from { box-shadow: 0 0 5px var(--queue-orange); transform: scale(1); } to { box-shadow: 0 0 20px var(--queue-orange); transform: scale(1.05); } }
+    @keyframes buttonMaxGlow { from { box-shadow: 0 0 10px var(--active-green); } to { box-shadow: 0 0 30px #fff; } }
 
     .section-label-pending { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--queue-orange); border-bottom: 2px solid #333; animation: pulseOrange 2s infinite ease-in-out; }
     .section-label-done { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--active-green); border-bottom: 2px solid #333; }
-    
     .history-item { background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
     .just-archived { animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 10; border-left-width: 6px; }
-
-    @keyframes proArchivePop {
-      0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); }
-      30% { transform: scale(1.1) translateX(0); opacity: 1; background: var(--active-green); }
-      100% { transform: scale(1); opacity: 1; background: #151515; }
-    }
+    @keyframes proArchivePop { 0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); } 30% { transform: scale(1.1) translateX(0); opacity: 1; background: var(--active-green); } 100% { transform: scale(1); opacity: 1; background: #151515; } }
 
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; }
-
     @keyframes softPulse { 0% { border-color: #444; } 50% { border-color: #666; } 100% { border-color: #444; } }
     .card-exit-success { transform: scale(0.2) translateX(-500px); opacity: 0; filter: brightness(2) blur(5px); pointer-events: none; }
     .card-date-badge { font-size: 10px; font-weight: 900; color: #666; text-transform: uppercase; margin-bottom: 4px; }
@@ -183,13 +76,7 @@
     .info-btn { flex: 0 0 75px; background: transparent; color: var(--review-blue); border: 2px solid var(--review-blue); padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 6px; cursor: pointer; }
     .done-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; text-transform: uppercase; background: var(--active-green); font-size: 20px; }
     .details-box { display: none; background: #000; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid var(--review-blue); font-size: 16px; color: #eee; line-height: 1.4; }
-    
-    .decline-btn {
-      width: 100%; margin-top: 15px; padding: 12px; background: transparent; 
-      color: var(--decline-red); border: 2px solid var(--decline-red); 
-      border-radius: 6px; font-weight: 900; font-size: 16px; cursor: pointer; 
-      text-transform: uppercase; transition: 0.3s;
-    }
+    .decline-btn { width: 100%; margin-top: 15px; padding: 12px; background: transparent; color: var(--decline-red); border: 2px solid var(--decline-red); border-radius: 6px; font-weight: 900; font-size: 16px; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
     .decline-btn:active { background: var(--decline-red); color: #000; }
 
     @keyframes pulseOrange { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.03); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
@@ -208,9 +95,8 @@
 </div>
 
 <header>
-  <h1 id="header-name">
-    <img src="icon-512.png" class="header-logo" alt="Logo">
-    E&C PORTAL
+  <h1 id="header-name" onclick="updateNotificationToken()">
+    <img src="icon-512.png" class="header-logo" alt="Logo"> E&C PORTAL
   </h1>
   <div id="clock"></div>
 </header>
@@ -221,7 +107,6 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
-    
     <button id="pwa-install-btn">INSTALL APP</button>
     <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
@@ -247,12 +132,9 @@
   const db = firebase.database();
   const messaging = firebase.messaging();
 
-  // 1. REGISTER SERVICE WORKER
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('firebase-messaging-sw.js')
-        .then(reg => console.log('Messaging Worker Registered'))
-        .catch(err => console.error('SW Registration Failed', err));
+      navigator.serviceWorker.register('firebase-messaging-sw.js').then(reg => console.log('SW active'));
     });
   }
 
@@ -260,80 +142,58 @@
   let currentDriver = localStorage.getItem('ec_driver_name');
   const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
 
-  // 2. TOKEN MANAGEMENT FUNCTION
+  let deferredPrompt;
+  const installBtn = document.getElementById('pwa-install-btn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block'; 
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null; installBtn.style.display = 'none';
+  });
+
+  let lastGpsUpdate = 0;
+  const gpsInterval = 60000; 
+  let wakeLock = null;
+
   async function updateNotificationToken() {
     if (!currentDriver) return;
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        // Using your specific BA1S... VAPID key
         const token = await messaging.getToken({ 
           vapidKey: 'BA1S09dDHyCTLXZfDGckfFdg0kvCyezfgst5eMhe0TnL03C7eHn3yogeC_u20knFpMxFNsHGZHsDjNp0RXjKHfI' 
         });
-        
         if (token) {
           await db.ref(`driver_tokens/${currentDriver}`).set(token);
-          console.log("SUCCESS: Token saved to database for " + currentDriver);
-        } else {
-          console.warn("No token generated. Check Firebase console settings.");
+          console.log("Token saved");
         }
-      } else {
-        console.error("Notification permission denied by user.");
       }
-    } catch (err) {
-      console.error("Error retrieving token: ", err);
-    }
+    } catch (err) { console.log(err); }
   }
 
-  // 3. PWA INSTALL LOGIC
-  let deferredPrompt;
-  const installBtn = document.getElementById('pwa-install-btn');
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'block'; 
-  });
-  installBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt = null;
-    installBtn.style.display = 'none';
-  });
-
-  // 4. GPS & TRACKING
-  let lastGpsUpdate = 0;
-  const gpsInterval = 60000; 
-  let wakeLock = null;
-
   async function startContinuousTracking() {
-    if ('wakeLock' in navigator) {
-      try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-    }
+    updateNotificationToken();
+    if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
       if (now - lastGpsUpdate > gpsInterval) {
         db.ref(`driver_locations/${currentDriver}`).update({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          last_seen: now,
-          gps_timestamp: now 
+          lat: pos.coords.latitude, lng: pos.coords.longitude, last_seen: now, gps_timestamp: now 
         });
         lastGpsUpdate = now;
       }
     }, (err) => {}, { enableHighAccuracy: true, maximumAge: 0 });
   }
 
-  // 5. SESSION CHECK
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('header-name').innerHTML = `
-      <img src="icon-512.png" class="header-logo">
-      ${currentDriver}
-      <span id="stop-counter" class="stop-badge">0 STOPS</span>
-    `;
+    document.getElementById('header-name').innerHTML = `<img src="icon-512.png" class="header-logo"> ${currentDriver} <span id="stop-counter" class="stop-badge">0 STOPS</span>`;
     startContinuousTracking();
-    updateNotificationToken();
   }
 
   function attemptLogin() {
@@ -343,80 +203,29 @@
       if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
           localStorage.setItem('ec_driver_name', driverKey);
           location.reload();
-      } else { alert("Invalid Name or PIN"); }
+      } else { alert("Invalid Login"); }
   }
 
-  document.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
-        attemptLogin();
-    }
-  });
+  document.addEventListener('keypress', (e) => { if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') attemptLogin(); });
 
-  function formatTime12(ts) {
-    const d = ts ? new Date(ts) : new Date();
-    return d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  }
-
-  function formatDateShort(ts) {
-    const d = new Date(ts);
-    return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
-  }
-
-  function toggleDetails(btn) {
-    const box = btn.closest('.active-card').querySelector('.details-box');
-    box.style.display = box.style.display === "block" ? "none" : "block";
-    btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
-  }
-
-  function restoreToQueue(id) {
-    if(confirm("Restore this job back to the active list?")) {
-      db.ref("pickups").child(id).update({ status: 'pending', completed_at: null });
-    }
-  }
-
-  function declineJob(id) {
-    if(confirm("Are you sure you want to decline this pick-up?")) {
-      db.ref("pickups").child(id).update({ assigned_to: "", status: "pending" });
-    }
-  }
-
-  function getNavUrl(addr, city) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
-  }
-
-  function getCurrentPosition() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) return reject("Geolocation not supported");
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
-        err => reject(err),
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
-    });
-  }
+  function formatTime12(ts) { const d = ts ? new Date(ts) : new Date(); return d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); }
+  function formatDateShort(ts) { const d = new Date(ts); return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }).toUpperCase(); }
+  function toggleDetails(btn) { const box = btn.closest('.active-card').querySelector('.details-box'); box.style.display = box.style.display === "block" ? "none" : "block"; btn.innerText = box.style.display === "block" ? "HIDE" : "INFO"; }
+  function restoreToQueue(id) { if(confirm("Restore job?")) db.ref("pickups").child(id).update({ status: 'pending', completed_at: null }); }
+  function declineJob(id) { if(confirm("Decline?")) db.ref("pickups").child(id).update({ assigned_to: "", status: "pending" }); }
+  function getNavUrl(addr, city) { return `http://maps.google.com/maps?q=$${encodeURIComponent(addr + ', ' + city)}`; }
 
   async function routeOptimized() {
     const btn = document.getElementById("multi-route-btn");
-    const oldText = btn.innerText;
     db.ref("pickups").once("value", async snapshot => {
       const data = snapshot.val() || {};
-      const pendingJobs = Object.values(data)
-        .filter(p => p.assigned_to === currentDriver && p.status === 'pending')
-        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-      if (pendingJobs.length === 0) return alert("No pending jobs.");
-      btn.innerText = "OPTIMIZING...";
-      try {
-        const userLoc = await getCurrentPosition().catch(() => null);
-        const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
-        window.open(`https://www.google.com/maps/dir/${userLoc || ''}/${stops.join('/')}`, '_blank');
-      } catch (err) {
-        const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
-      } finally { btn.innerText = oldText; }
+      const pendingJobs = Object.values(data).filter(p => p.assigned_to === currentDriver && p.status === 'pending').sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      if (pendingJobs.length === 0) return alert("No jobs.");
+      const stops = pendingJobs.map(p => `${p.pickup_location}, ${p.city || ''}`);
+      window.open(`https://www.google.com/maps/dir/$/${stops.join('/')}`, '_blank');
     });
   }
 
-  // 6. REALTIME UI UPDATES
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
     const data = snapshot.val() || {};
@@ -436,17 +245,13 @@
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const item = document.createElement("div"); 
       item.className = "history-item";
-      if(id === lastDoneId) {
-        item.classList.add('just-archived');
-        sessionStorage.removeItem('last_completed_job');
-      }
+      if(id === lastDoneId) { item.classList.add('just-archived'); sessionStorage.removeItem('last_completed_job'); }
       item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${p.name || 'No Name'}</span>`;
+      
       if (p.status === 'completed') {
-        item.onclick = () => restoreToQueue(id);
-        rLog.appendChild(item);
+        item.onclick = () => restoreToQueue(id); rLog.appendChild(item);
       } else {
-        pendingCount++;
-        qLog.appendChild(item);
+        pendingCount++; qLog.appendChild(item);
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
@@ -482,9 +287,9 @@
       }
     });
     if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
-    if(pendingCount >= 20) { routeBtn.className = 'glow-max'; routeBtn.innerText = "MAX ROUTE"; }
-    else if(pendingCount > 1) { routeBtn.className = 'glow-active'; routeBtn.innerText = "ROUTE NAV"; }
-    else { routeBtn.className = ''; routeBtn.innerText = "ROUTE NAV"; }
+    if(pendingCount >= 20) routeBtn.className = 'glow-max'; 
+    else if(pendingCount > 1) routeBtn.className = 'glow-active'; 
+    else routeBtn.className = '';
   });
 
   function markDone(id) {
