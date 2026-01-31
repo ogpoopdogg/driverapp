@@ -272,8 +272,6 @@
   firebase.auth().signInAnonymously();
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
-  let observer = null;
-  let fieldSnapshots = {}; 
   const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
   let lastGpsUpdate = 0;
   const gpsInterval = 60000;
@@ -312,6 +310,7 @@
   }
 
   function formatTime(ms) {
+    if (!ms) return "--:--";
     const d = new Date(ms);
     let h = d.getHours();
     let m = d.getMinutes();
@@ -320,7 +319,9 @@
     return `${h}:${m < 10 ? '0'+m : m} ${ampm}`;
   }
 
-  function updateClock() { document.getElementById('clock').innerText = formatTime(Date.now()); }
+  function updateClock() { 
+    document.getElementById('clock').innerText = formatTime(Date.now()); 
+  }
   setInterval(updateClock, 1000);
   updateClock();
 
@@ -347,41 +348,12 @@
     window.open(url, '_blank');
   }
 
-  function highlightChanges(id, newData) {
-    const oldData = fieldSnapshots[id];
-    if(!oldData) return;
-    const fields = ['pickup_location', 'destination', 'type', 'qty', 'l', 'w', 'h', 'extra', 'assigned_to', 'notes'];
-    fields.forEach(f => {
-      if(newData[f] !== oldData[f]) {
-        const el = document.querySelector(`#card-${id} [data-field="${f}"]`);
-        if(el) {
-          el.classList.add('field-highlight');
-          const badge = document.createElement('span');
-          badge.className = 'update-badge';
-          badge.innerText = 'UPDATED';
-          el.parentNode.appendChild(badge);
-        }
-      }
-    });
-  }
-
-  function updateNewStopsCountUI() {
-    const lastSeenCount = parseInt(localStorage.getItem('last_seen_count') || 0);
-    const currentCount = document.querySelectorAll('.active-card').length;
-    const badge = document.getElementById('new-stops-badge');
-    if(currentCount > lastSeenCount) {
-      badge.style.display = 'inline-block';
-      badge.innerText = `+${currentCount - lastSeenCount} NEW`;
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-
   db.ref("pickups").on("value", (snap) => {
     const data = snap.val() || {};
     const feed = document.getElementById('live-feed');
     const queueLog = document.getElementById('queue-log');
     const recentLog = document.getElementById('recent-log');
+    const routeBtn = document.getElementById('multi-route-btn');
     
     feed.innerHTML = '';
     queueLog.innerHTML = '';
@@ -399,10 +371,6 @@
       if(isDone && isToday && isMine) {
         const logItem = document.createElement('div');
         logItem.className = 'history-item';
-        if(sessionStorage.getItem('last_completed_job') === id) {
-          logItem.classList.add('just-archived');
-          sessionStorage.removeItem('last_completed_job');
-        }
         logItem.innerHTML = `
           <span style="color:#fff; font-weight:800;">${job.city || '???'}</span>
           <span class="history-contact">${job.name || 'Unknown'}</span>
@@ -427,11 +395,6 @@
         card.id = `card-${id}`;
         card.setAttribute('data-addr', job.pickup_location);
         
-        const lastCompleted = sessionStorage.getItem('last_completed_job');
-        if (job.created_at > (Date.now() - 30000) && id !== lastCompleted) {
-            card.classList.add('new-job-highlight');
-        }
-
         const dims = (job.l && job.w && job.h) ? `${job.l}<span class="dim-x">x</span>${job.w}<span class="dim-x">x</span>${job.h}` : '';
 
         card.innerHTML = `
@@ -441,18 +404,18 @@
               <div class="city-tag">${job.city || 'CITY'}</div>
               <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.pickup_location)}" class="nav-link" target="_blank">
                 <div class="card-label">PICKUP</div>
-                <div class="pickup-value" data-field="pickup_location">${job.pickup_location}</div>
+                <div class="pickup-value">${job.pickup_location}</div>
               </a>
               <div style="margin-top:10px;">
                 <div class="card-label">DELIVER TO</div>
-                <div class="drop-value" data-field="destination">${job.destination}</div>
+                <div class="drop-value">${job.destination}</div>
               </div>
             </div>
             <div class="specs-side">
-              <div class="card-label">QTY</div>
-              <div class="tech-info" data-field="qty">${job.qty || '1'}</div>
+              <div class="card-label">QUANTITY</div>
+              <div class="tech-info" style="color:var(--update-blue);">${job.quantity || '1'}</div>
               <div class="card-label">TYPE</div>
-              <div class="tech-info" data-field="type" style="color:var(--accent);">${job.type}</div>
+              <div class="tech-info" style="color:var(--accent);">${job.type}</div>
               <div class="tech-info" style="margin-top:5px; font-size:12px;">${dims}</div>
             </div>
           </div>
@@ -460,10 +423,10 @@
           <div id="details-${id}" class="details-box">
             <div class="card-label">CONTACT / REF</div>
             <div style="margin-bottom:8px; font-weight:800; color:var(--accent);">${job.name || 'N/A'} | ${job.po || 'NO PO'}</div>
-            <div class="card-label">EXTRA PACKAGES / ITEMS</div>
-            <div style="margin-bottom:8px; font-weight:700; color:var(--update-blue);" data-field="extra">${job.extra || 'None'}</div>
+            <div class="card-label">ADDITIONAL PACKAGES/ITEMS</div>
+            <div style="margin-bottom:8px; font-weight:700; color:var(--update-blue);">${job.extra || 'None'}</div>
             <div class="card-label">INSTRUCTIONS</div>
-            <div data-field="notes">${job.notes || 'No notes provided.'}</div>
+            <div>${job.notes || 'No notes provided.'}</div>
           </div>
 
           <div class="card-action-row">
@@ -472,12 +435,9 @@
           </div>
         `;
         feed.appendChild(card);
-        if (observer) observer.observe(card);
       }
     });
 
-    updateNewStopsCountUI();
-    const routeBtn = document.getElementById('multi-route-btn');
     if(pendingCount >= 20) {
       routeBtn.classList.add('glow-max');
       routeBtn.innerText = "MAX ROUTE";
