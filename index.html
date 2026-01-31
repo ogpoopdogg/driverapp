@@ -89,11 +89,39 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
     
+    /* MODIFIED: Persistent Active State and Re-Route Enhancements */
+    .route-active-toggle {
+      background: var(--review-blue) !important;
+      color: #fff !important;
+      border-color: #fff !important;
+    }
+
+    .new-pickup-alert {
+      position: fixed; bottom: 65px; left: 10px; width: 120px;
+      background: var(--decline-red); color: #fff; font-size: 10px;
+      font-weight: 900; text-align: center; padding: 4px; border-radius: 4px;
+      animation: alert-bounce 0.5s infinite alternate; z-index: 101;
+      text-transform: uppercase; display: none;
+    }
+
+    @keyframes alert-bounce {
+      from { transform: translateY(0); box-shadow: 0 0 5px var(--decline-red); }
+      to { transform: translateY(-5px); box-shadow: 0 0 15px var(--decline-red); }
+    }
+
     .glow-active {
       background: var(--queue-orange) !important;
       color: #000 !important;
       border-color: #fff !important;
       animation: buttonGlow 1.5s infinite alternate;
+    }
+
+    .glow-reroute {
+      background: var(--accent) !important;
+      color: #000 !important;
+      border: 2px solid #fff !important;
+      font-size: 14px !important;
+      animation: buttonMaxGlow 0.6s infinite alternate !important;
     }
 
     .glow-max {
@@ -110,7 +138,7 @@
     }
 
     @keyframes buttonMaxGlow {
-      from { box-shadow: 0 0 10px var(--active-green); }
+      from { box-shadow: 0 0 10px var(--accent); }
       to { box-shadow: 0 0 30px #fff; }
     }
 
@@ -186,6 +214,7 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
+    <div id="new-pickup-label" class="new-pickup-alert">New Pickup!</div>
     <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
   <div id="live-feed"></div>
@@ -205,6 +234,10 @@
   firebase.auth().signInAnonymously();
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
+  
+  // Track routing state
+  let isRoutingActive = false;
+  let lastKnownPendingCount = 0;
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -328,6 +361,11 @@
   }
 
   async function routeOptimized() {
+    // Persistent toggle activation
+    isRoutingActive = true;
+    document.getElementById("multi-route-btn").classList.add("route-active-toggle");
+    document.getElementById("new-pickup-label").style.display = "none";
+
     const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     const btn = document.getElementById("multi-route-btn");
     const oldText = btn.innerText;
@@ -407,13 +445,13 @@
     const qLog = document.getElementById("queue-log");
     const routeBtn = document.getElementById("multi-route-btn");
     const stopCounter = document.getElementById("stop-counter");
+    const newPickupAlert = document.getElementById("new-pickup-label");
     
     feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
     const startOfToday = new Date().setHours(0,0,0,0);
     const lastDoneId = sessionStorage.getItem('last_completed_job');
     let pendingCount = 0;
 
-    // SORTING LOGIC: Convert object to array, sort by timestamp ascending (oldest first)
     Object.entries(data)
       .sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0))
       .forEach(([id, p]) => {
@@ -473,6 +511,15 @@
       }
     });
 
+    // Handle "New Pickup" UI changes
+    if (pendingCount > lastKnownPendingCount && isRoutingActive) {
+      newPickupAlert.style.display = "block";
+      routeBtn.classList.add("glow-reroute");
+      routeBtn.innerText = "RE-ROUTE NAV";
+    }
+    
+    lastKnownPendingCount = pendingCount;
+
     if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
 
     if(pendingCount >= 20) {
@@ -480,11 +527,14 @@
       routeBtn.innerText = "MAX ROUTE";
     } else if(pendingCount > 1) {
       routeBtn.classList.remove('glow-max');
-      routeBtn.classList.add('glow-active');
-      routeBtn.innerText = "ROUTE NAV";
+      if (!routeBtn.classList.contains("glow-reroute")) {
+          routeBtn.classList.add('glow-active');
+          routeBtn.innerText = isRoutingActive ? "ROUTE NAV" : "ROUTE NAV";
+      }
     } else {
-      routeBtn.classList.remove('glow-active', 'glow-max');
+      routeBtn.classList.remove('glow-active', 'glow-max', 'glow-reroute');
       routeBtn.innerText = "ROUTE NAV";
+      newPickupAlert.style.display = "none";
     }
   });
 
