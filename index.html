@@ -20,6 +20,18 @@
     html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; }
     
+    /* NEW JOB ARRIVAL ANIMATION */
+    .new-arrival-glow {
+      animation: arrival-pulse 2s infinite alternate ease-in-out !important;
+      border-color: var(--active-green) !important;
+      box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+    }
+
+    @keyframes arrival-pulse {
+      0% { box-shadow: 0 0 5px var(--active-green); border-color: rgba(76, 175, 80, 0.5); }
+      100% { box-shadow: 0 0 20px var(--active-green); border-color: var(--active-green); background-color: #1e2a1e; }
+    }
+    
     /* NEW INFO ANIMATIONS */
     .has-update {
       border: 2px solid var(--update-blue) !important;
@@ -359,17 +371,23 @@
   // Handle clearing highlights when card is acknowledged/touched
   function acknowledgeUpdate(id) {
     sessionStorage.setItem(`ack_update_${id}`, 'true');
+    sessionStorage.setItem(`arrival_seen_${id}`, 'true'); // Clear arrival glow tracking
+    
     const card = document.getElementById(`card-${id}`);
     const mini = document.getElementById(`mini-${id}`);
     
     if(card) {
       card.classList.remove('has-update');
+      card.classList.remove('new-arrival-glow');
       // Remove specific field highlights
       card.querySelectorAll('.field-highlight').forEach(el => {
           el.classList.remove('field-highlight');
       });
     }
-    if(mini) mini.classList.remove('has-update');
+    if(mini) {
+      mini.classList.remove('has-update');
+      mini.classList.remove('new-arrival-glow');
+    }
     
     const badge = document.getElementById(`badge-${id}`);
     if(badge) badge.style.display = 'none';
@@ -377,6 +395,7 @@
 
   // Navigation: Click mini-card to scroll to main card
   function scrollToCard(id) {
+    acknowledgeUpdate(id); // Stop animation on touch
     const card = document.getElementById(`card-${id}`);
     if (card) {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -560,6 +579,9 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
+      // Arrival Glow Check (Persistent until touch)
+      const arrivalAcked = sessionStorage.getItem(`arrival_seen_${id}`);
+
       // GRANULAR FIELD TRACKING
       const currentFields = {
           addr: p.pickup_location,
@@ -582,6 +604,11 @@
                   sessionStorage.removeItem(`ack_update_${id}`);
               }
           });
+      } else {
+        // First time seeing this job, it's a "New Arrival"
+        if(!arrivalAcked) {
+           // Do not set arrival_seen yet, wait for touch
+        }
       }
       fieldSnapshots[id] = { ...currentFields };
 
@@ -599,6 +626,7 @@
       }
       
       if(needsAlert) item.classList.add('has-update');
+      if(!arrivalAcked) item.classList.add('new-arrival-glow');
 
       item.innerHTML = `
         <strong>${shortAddr}</strong>
@@ -625,6 +653,7 @@
         }
 
         if(needsAlert) card.classList.add('has-update');
+        if(!arrivalAcked) card.classList.add('new-arrival-glow');
 
         card.id = `card-${id}`;
         card.innerHTML = `
