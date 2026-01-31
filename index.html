@@ -285,7 +285,7 @@
       setTimeout(async () => { 
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          messaging.getToken({ vapidKey: 'BMYpX7-U_eG0v8oN_s6P_zKqLp-W6E_7z7E6-m6Y7z7E6-m6Y7z7E6' })
+          messaging.getToken({ vapidKey: 'BA1S09dDHyCTLXZfDGckfFdg0kvCyezfgst5eMhe0TnL03C7eHn3yogeC_u20knFpMxFNsHGZHsDjNp0RXjKHfI' })
             .then((currentToken) => {
               if (currentToken) {
                 db.ref(`driver_tokens/${currentDriver}`).set(currentToken);
