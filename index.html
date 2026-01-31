@@ -246,10 +246,11 @@
   const db = firebase.database();
   const messaging = firebase.messaging();
 
-  // Register only the messaging worker to avoid conflicts
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('firebase-messaging-sw.js').then(reg => console.log('Messaging SW active'));
+      navigator.serviceWorker.register('firebase-messaging-sw.js')
+        .then(reg => console.log('Messaging Worker Active'))
+        .catch(err => console.error('SW Registration Failed:', err));
     });
   }
 
@@ -279,26 +280,23 @@
   const gpsInterval = 60000; 
   let wakeLock = null;
 
-  async function startContinuousTracking() {
-    // Generate notification token and save to DB
-    if ("Notification" in window) {
-      setTimeout(async () => { 
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          // ADDED Sender ID here to fix the token generation issue
-          messaging.getToken({ 
-            vapidKey: 'BA1S09dDHyCTLXZfDGckfFdg0kvCyezfgst5eMhe0TnL03C7eHn3yogeC_u20knFpMxFNsHGZHsDjNp0RXjKHfI' 
-          })
-            .then((currentToken) => {
-              if (currentToken) {
-                db.ref(`driver_tokens/${currentDriver}`).set(currentToken);
-                console.log("Token saved to DB!");
-              }
-            }).catch(err => console.log("Token error:", err));
+  async function updateNotificationToken() {
+    if (!currentDriver) return;
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const token = await messaging.getToken({ 
+          vapidKey: 'BA1S09dDHyCTLXZfDGckfFdg0kvCyezfgst5eMhe0TnL03C7eHn3yogeC_u20knFpMxFNsHGZHsDjNp0RXjKHfI' 
+        });
+        if (token) {
+          await db.ref(`driver_tokens/${currentDriver}`).set(token);
+          console.log("Success: Token stored for " + currentDriver);
         }
-      }, 1500);
-    }
+      }
+    } catch (err) { console.error("Token error:", err); }
+  }
 
+  async function startContinuousTracking() {
     if ('wakeLock' in navigator) {
       try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
     }
@@ -326,6 +324,7 @@
       <span id="stop-counter" class="stop-badge">0 STOPS</span>
     `;
     startContinuousTracking();
+    updateNotificationToken();
   }
 
   function attemptLogin() {
