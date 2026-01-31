@@ -26,6 +26,13 @@
       animation: update-glow 1.5s infinite alternate !important;
     }
 
+    /* FIELD HIGHLIGHTING */
+    .field-highlight {
+      color: var(--update-blue) !important;
+      text-shadow: 0 0 8px var(--update-blue);
+      font-weight: bold;
+    }
+
     .update-badge {
       background: var(--update-blue);
       color: #000;
@@ -168,7 +175,9 @@
     }
 
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
-    #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .history-package { color: #888; font-size: 10px; display: block; text-transform: uppercase; font-weight: bold; margin-top: 1px; }
+
+    #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
     .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; transition: all 0.5s ease; }
 
     .new-job-highlight {
@@ -187,7 +196,7 @@
     .nav-link { text-decoration: none; color: inherit; }
     .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px; }
     .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
-    .drop-value { font-size: 18px; font-800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
+    .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
     
@@ -258,7 +267,7 @@
   let currentDriver = localStorage.getItem('ec_driver_name');
 
   let observer = null;
-  let jobSnapshots = {}; // Tracks content "fingerprints" to detect updates
+  let fieldSnapshots = {}; // Tracks specific fields to detect partial updates
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -340,15 +349,33 @@
     });
   }
 
-  // Handle clearing the "NEW INFO" alert when driver clicks/touches card
+  // Handle clearing highlights when card is acknowledged/touched
   function acknowledgeUpdate(id) {
     sessionStorage.setItem(`ack_update_${id}`, 'true');
     const card = document.getElementById(`card-${id}`);
     const mini = document.getElementById(`mini-${id}`);
-    if(card) card.classList.remove('has-update');
+    
+    if(card) {
+      card.classList.remove('has-update');
+      // Remove specific field highlights
+      card.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
+    }
     if(mini) mini.classList.remove('has-update');
+    
     const badge = document.getElementById(`badge-${id}`);
     if(badge) badge.style.display = 'none';
+  }
+
+  // Navigation: Click mini-card to scroll to main card
+  function scrollToCard(id) {
+    const card = document.getElementById(`card-${id}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Brief visual flash to show focus
+      card.style.transition = '0.3s';
+      card.style.background = '#2a2a2a';
+      setTimeout(() => card.style.background = 'var(--card-bg)', 500);
+    }
   }
 
   function updateNewStopsCountUI() {
@@ -388,10 +415,17 @@
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   }
 
-  function toggleDetails(btn) {
+  function toggleDetails(btn, id) {
     const box = btn.closest('.active-card').querySelector('.details-box');
-    box.style.display = box.style.display === "block" ? "none" : "block";
-    btn.innerText = box.style.display === "block" ? "HIDE" : "INFO";
+    const isOpening = box.style.display !== "block";
+    
+    box.style.display = isOpening ? "block" : "none";
+    btn.innerText = isOpening ? "HIDE" : "INFO";
+    
+    // If user closes card, clear field highlights
+    if(!isOpening) {
+        acknowledgeUpdate(id);
+    }
   }
 
   function restoreToQueue(id) {
@@ -519,13 +553,27 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
-      // DETECT DATA UPDATES (Logic for "New Info" Trigger)
-      const contentStr = JSON.stringify({ n: p.name, o: p.other_info, po: p.po_number, d: p.destination, p: p.pickup_location });
-      const hasContentChanged = jobSnapshots[id] && jobSnapshots[id] !== contentStr;
-      jobSnapshots[id] = contentStr;
+      // FIELD-LEVEL DETECTION
+      const fields = {
+          addr: p.pickup_location,
+          dest: p.destination,
+          contact: p.name,
+          po: p.po_number,
+          notes: p.other_info,
+          type: p.package_type
+      };
 
-      // If change detected, trigger alert unless already acknowledged
-      const needsAlert = hasContentChanged && !sessionStorage.getItem(`ack_update_${id}`);
+      const changedFields = [];
+      const acked = sessionStorage.getItem(`ack_update_${id}`);
+
+      if (fieldSnapshots[id]) {
+          Object.keys(fields).forEach(key => {
+              if (fieldSnapshots[id][key] !== fields[key]) changedFields.push(key);
+          });
+      }
+      fieldSnapshots[id] = { ...fields };
+
+      const needsAlert = changedFields.length > 0 && !acked;
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const contactName = p.name || 'No Name';
@@ -540,19 +588,26 @@
       
       if(needsAlert) item.classList.add('has-update');
 
-      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
+      // Add Package Type to Mini Card
+      item.innerHTML = `
+        <strong>${shortAddr}</strong>
+        <span class="history-contact">${contactName}</span>
+        <span class="history-package">${p.package_type || ''}</span>
+      `;
 
       if (p.status === 'completed') {
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
         pendingCount++;
+        item.onclick = () => scrollToCard(id); // Sidebar Navigation
         qLog.appendChild(item);
+
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
-        card.onclick = () => acknowledgeUpdate(id); // Ack on touch
+        card.onclick = () => acknowledgeUpdate(id);
         
         if (!p.seen_by || !p.seen_by[currentDriver]) {
           card.classList.add('new-job-highlight');
@@ -570,12 +625,14 @@
             <div class="address-side">
               <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
               <div class="card-label">Pickup</div>
-              <a href="${navUrl}" target="_blank" class="nav-link"><div class="pickup-value">${p.pickup_location}</div></a>
+              <a href="${navUrl}" target="_blank" class="nav-link">
+                <div class="pickup-value ${needsAlert && changedFields.includes('addr') ? 'field-highlight' : ''}">${p.pickup_location}</div>
+              </a>
               <div class="card-label" style="margin-top:8px;">Drop</div>
-              <div class="drop-value">${p.destination}</div>
+              <div class="drop-value ${needsAlert && changedFields.includes('dest') ? 'field-highlight' : ''}">${p.destination}</div>
             </div>
             <div class="specs-side">
-              <div><div class="card-label">Type</div><div class="tech-info">${p.package_type}</div></div>
+              <div><div class="card-label">Type</div><div class="tech-info ${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}">${p.package_type}</div></div>
               <div><div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
@@ -584,13 +641,13 @@
             <div class="job-date-stamp">${formatDateShort(p.timestamp)}</div>
           </div>
           <div class="details-box">
-            <div><span style="color:var(--accent)">CONTACT:</span> ${p.name || 'N/A'}</div>
-            <div><span style="color:var(--accent)">PO:</span> ${p.po_number || '-'}</div>
-            <div><span style="color:var(--accent)">NOTES:</span> ${p.other_info || 'None'}</div>
+            <div><span style="color:var(--accent)">CONTACT:</span> <span class="${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}">${p.name || 'N/A'}</span></div>
+            <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
+            <div><span style="color:var(--accent)">NOTES:</span> <span class="${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
-            <button class="info-btn" onclick="toggleDetails(this)">INFO</button>
+            <button class="info-btn" onclick="toggleDetails(this, '${id}')">INFO</button>
             <button class="done-btn" onclick="markDone('${id}')">DONE</button>
           </div>
         `;
