@@ -89,7 +89,6 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
 
-    /* NEW FEATURE: Positioned above route nav on left */
     .new-pickup-alert {
       position: fixed;
       bottom: 58px;
@@ -150,7 +149,25 @@
 
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; }
+    .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; position: relative; overflow: hidden; }
+
+    /* NEW JOB ANIMATIONS */
+    .new-job-glow {
+      animation: card-new-pulse 1.5s infinite alternate;
+      border-color: var(--accent) !important;
+    }
+    .new-job-glow::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 204, 0, 0.07);
+      pointer-events: none;
+      z-index: 1;
+    }
+    @keyframes card-new-pulse {
+      from { box-shadow: 0 0 5px rgba(255, 204, 0, 0.2); }
+      to { box-shadow: 0 0 20px rgba(255, 204, 0, 0.5); }
+    }
 
     @keyframes softPulse { 0% { border-color: #444; } 50% { border-color: #666; } 100% { border-color: #444; } }
     .card-exit-success { transform: scale(0.2) translateX(-500px); opacity: 0; filter: brightness(2) blur(5px); pointer-events: none; }
@@ -466,22 +483,26 @@
         pendingCount++;
         qLog.appendChild(item);
 
-        // Detect New Jobs after initial load
-        if (initialLoadComplete && !activeNewJobs.has(id)) {
-            activeNewJobs.add(id);
-            document.getElementById('new-pickup-indicator').style.display = 'block';
-        }
-
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
         card.id = `card-${id}`;
 
-        // Clear notification on touch/click
+        // Handle NEW job logic
+        if (initialLoadComplete && !activeNewJobs.has(id)) {
+            activeNewJobs.add(id);
+            card.classList.add('new-job-glow');
+            document.getElementById('new-pickup-indicator').style.display = 'block';
+        } else if (activeNewJobs.has(id)) {
+            // Keep glow if it was already marked as new but not yet clicked
+            card.classList.add('new-job-glow');
+        }
+
         card.addEventListener('click', () => {
             if (activeNewJobs.has(id)) {
                 activeNewJobs.delete(id);
+                card.classList.remove('new-job-glow');
                 if (activeNewJobs.size === 0) {
                     document.getElementById('new-pickup-indicator').style.display = 'none';
                 }
@@ -552,7 +573,6 @@
   function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
   setInterval(updateClock, 1000); updateClock();
 
-  // Run tracking on load
   window.onload = () => {
     if(currentDriver) startContinuousTracking();
   };
