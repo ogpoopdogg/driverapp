@@ -232,6 +232,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
@@ -246,61 +247,68 @@
   const db = firebase.database();
   const messaging = firebase.messaging();
 
+  // 1. REGISTER SERVICE WORKER
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('firebase-messaging-sw.js')
-        .then(reg => console.log('Messaging Worker Active'))
-        .catch(err => console.error('SW Registration Failed:', err));
+        .then(reg => console.log('Messaging Worker Registered'))
+        .catch(err => console.error('SW Registration Failed', err));
     });
   }
 
   firebase.auth().signInAnonymously();
   let currentDriver = localStorage.getItem('ec_driver_name');
-
   const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
 
-  let deferredPrompt;
-  const installBtn = document.getElementById('pwa-install-btn');
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'block'; 
-  });
-
-  installBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    installBtn.style.display = 'none';
-  });
-
-  let lastGpsUpdate = 0;
-  const gpsInterval = 60000; 
-  let wakeLock = null;
-
+  // 2. TOKEN MANAGEMENT FUNCTION
   async function updateNotificationToken() {
     if (!currentDriver) return;
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
+        // Using your specific BA1S... VAPID key
         const token = await messaging.getToken({ 
           vapidKey: 'BA1S09dDHyCTLXZfDGckfFdg0kvCyezfgst5eMhe0TnL03C7eHn3yogeC_u20knFpMxFNsHGZHsDjNp0RXjKHfI' 
         });
+        
         if (token) {
           await db.ref(`driver_tokens/${currentDriver}`).set(token);
-          console.log("Success: Token stored for " + currentDriver);
+          console.log("SUCCESS: Token saved to database for " + currentDriver);
+        } else {
+          console.warn("No token generated. Check Firebase console settings.");
         }
+      } else {
+        console.error("Notification permission denied by user.");
       }
-    } catch (err) { console.error("Token error:", err); }
+    } catch (err) {
+      console.error("Error retrieving token: ", err);
+    }
   }
+
+  // 3. PWA INSTALL LOGIC
+  let deferredPrompt;
+  const installBtn = document.getElementById('pwa-install-btn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block'; 
+  });
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+  });
+
+  // 4. GPS & TRACKING
+  let lastGpsUpdate = 0;
+  const gpsInterval = 60000; 
+  let wakeLock = null;
 
   async function startContinuousTracking() {
     if ('wakeLock' in navigator) {
       try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
     }
-
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
@@ -316,6 +324,7 @@
     }, (err) => {}, { enableHighAccuracy: true, maximumAge: 0 });
   }
 
+  // 5. SESSION CHECK
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('header-name').innerHTML = `
@@ -372,7 +381,7 @@
   }
 
   function getNavUrl(addr, city) {
-    return `http://maps.google.com/maps?q=${encodeURIComponent(addr + ', ' + city)}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}`;
   }
 
   function getCurrentPosition() {
@@ -407,6 +416,7 @@
     });
   }
 
+  // 6. REALTIME UI UPDATES
   db.ref("pickups").on("value", snapshot => {
     if(!currentDriver) return;
     const data = snapshot.val() || {};
