@@ -219,12 +219,10 @@
   let wakeLock = null;
 
   async function startContinuousTracking() {
-    // 1. Notification Permission
     if ("Notification" in window) {
       Notification.requestPermission();
     }
 
-    // 2. Wake Lock (Prevent sleep)
     if ('wakeLock' in navigator) {
       try {
         wakeLock = await navigator.wakeLock.request('screen');
@@ -234,7 +232,6 @@
       }
     }
 
-    // 3. GPS Tracking
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
@@ -250,7 +247,6 @@
     }, (err) => console.warn("GPS Error:", err.message), 
     { enableHighAccuracy: true, maximumAge: 0 });
   }
-  // --- END UPDATED SYSTEM ---
 
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
@@ -417,8 +413,10 @@
     const lastDoneId = sessionStorage.getItem('last_completed_job');
     let pendingCount = 0;
 
-    // Convert to array and sort chronologically by timestamp (earliest first)
-    Object.entries(data).sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0)).forEach(([id, p]) => {
+    // SORTING LOGIC: Convert object to array, sort by timestamp ascending (oldest first)
+    Object.entries(data)
+      .sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0))
+      .forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
@@ -506,7 +504,6 @@
   function updateClock() { document.getElementById('clock').innerText = formatTime12(); }
   setInterval(updateClock, 1000); updateClock();
 
-  // Run tracking on load
   window.onload = () => {
     if(currentDriver) startContinuousTracking();
   };
