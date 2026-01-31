@@ -89,6 +89,27 @@
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
     }
     
+    /* NEW PICKUP NOTIFICATION STYLES */
+    .new-pickup-label {
+      position: absolute;
+      bottom: 55px; /* Positioned clearly above route nav button */
+      left: 5px;
+      width: 130px;
+      text-align: center;
+      color: var(--active-green);
+      font-weight: 900;
+      font-size: 12px;
+      text-transform: uppercase;
+      animation: pulseNew 1s infinite alternate ease-in-out;
+      pointer-events: none;
+    }
+
+    @keyframes pulseNew {
+      from { opacity: 0.4; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1.05); }
+    }
+    /* END NEW STYLES */
+
     .glow-active {
       background: var(--queue-orange) !important;
       color: #000 !important;
@@ -128,7 +149,7 @@
 
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; }
+    .active-card { position: relative; background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; }
 
     @keyframes softPulse { 0% { border-color: #444; } 50% { border-color: #666; } 100% { border-color: #444; } }
     .card-exit-success { transform: scale(0.2) translateX(-500px); opacity: 0; filter: brightness(2) blur(5px); pointer-events: none; }
@@ -186,7 +207,7 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
-    <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
+    <div id="notif-anchor" style="position:relative;"></div> <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
   <div id="live-feed"></div>
 </div>
@@ -205,6 +226,9 @@
   firebase.auth().signInAnonymously();
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
+  
+  // TRACKING FOR NEW JOBS
+  const notifiedJobs = new Set();
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -413,10 +437,7 @@
     const lastDoneId = sessionStorage.getItem('last_completed_job');
     let pendingCount = 0;
 
-    // SORTING LOGIC: Convert object to array, sort by timestamp ascending (oldest first)
-    Object.entries(data)
-      .sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0))
-      .forEach(([id, p]) => {
+    Object.entries(data).reverse().forEach(([id, p]) => {
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
@@ -434,6 +455,7 @@
       if (p.status === 'completed') {
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
+        notifiedJobs.add(id); // Mark as seen if completed
       } else {
         pendingCount++;
         qLog.appendChild(item);
@@ -442,7 +464,21 @@
         const card = document.createElement("div"); 
         card.className = "active-card";
         card.id = `card-${id}`;
+
+        // NOTIFICATION LOGIC: If job is new to this session
+        let notifHtml = "";
+        if (!notifiedJobs.has(id)) {
+            notifHtml = `<div class="new-pickup-label" id="notif-${id}">New Pickup</div>`;
+            // Add click listener to clear notif
+            card.onclick = () => {
+                const label = document.getElementById(`notif-${id}`);
+                if(label) label.remove();
+                notifiedJobs.add(id);
+            };
+        }
+
         card.innerHTML = `
+          ${notifHtml}
           <div class="card-date-badge">${formatDateShort(p.timestamp)}</div>
           <div class="card-layout">
             <div class="address-side">
