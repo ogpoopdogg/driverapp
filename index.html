@@ -133,7 +133,7 @@
     .history-item { position: relative; background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
     .just-archived { animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 10; border-left-width: 6px; }
 
-    /* New Info Notification Style */
+    /* New Info Badge Styles */
     .edit-notif {
       position: absolute; top: 2px; right: 5px; font-size: 9px; font-weight: 900; color: #fff;
       background: var(--review-blue); padding: 1px 4px; border-radius: 3px;
@@ -384,18 +384,16 @@
     }
   }
 
-  // --- NEW FEATURE: NOTIFICATION DISMISSAL ---
+  /* NEW: Notification Dismissal Logic */
   function scrollToJob(id) {
-    // Dismiss "New Info" logic
     const ackKey = `ack_${id}`;
-    localStorage.setItem(ackKey, Date.now());
+    localStorage.setItem(ackKey, Date.now()); // Mark as acknowledged locally
     
     const card = document.getElementById(`card-${id}`);
     if (card) {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Remove visual "New Info" text immediately
       const notif = document.querySelector(`#q-item-${id} .edit-notif`);
-      if (notif) notif.remove();
+      if (notif) notif.remove(); // Instantly hide the "New Info" text
     }
   }
 
@@ -517,7 +515,7 @@
         sessionStorage.removeItem('last_completed_job');
       }
 
-      // --- NEW FEATURE: REAL-TIME EDIT DETECTION ---
+      /* NEW: Dynamic Info Badge Detection */
       let editBadge = "";
       const lastAck = localStorage.getItem(`ack_${id}`) || 0;
       if (p.last_edited && p.last_edited > lastAck) {
@@ -531,7 +529,7 @@
         rLog.appendChild(item);
       } else {
         pendingCount++;
-        item.onclick = () => scrollToJob(id); // Integration point for notification removal
+        item.onclick = () => scrollToJob(id); // Integration point for dismissal
         qLog.appendChild(item);
         
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
