@@ -130,8 +130,20 @@
     .section-label-pending { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--queue-orange); border-bottom: 2px solid #333; animation: pulseOrange 2s infinite ease-in-out; }
     .section-label-done { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 12px 0 6px 0; color: var(--active-green); border-bottom: 2px solid #333; }
     
-    .history-item { background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
+    .history-item { position: relative; background: #151515; padding: 10px 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--active-green); font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.3s ease; }
     .just-archived { animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 10; border-left-width: 6px; }
+
+    /* New Info Notification Style */
+    .edit-notif {
+      position: absolute; top: 2px; right: 5px; font-size: 9px; font-weight: 900; color: #fff;
+      background: var(--review-blue); padding: 1px 4px; border-radius: 3px;
+      animation: infoPulse 1.5s infinite;
+    }
+    @keyframes infoPulse {
+      0% { opacity: 0.7; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0.7; transform: scale(0.95); }
+    }
 
     @keyframes proArchivePop {
       0% { transform: scale(0.5) translateX(50px); opacity: 0; background: var(--active-green); }
@@ -287,7 +299,6 @@
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const cardId = entry.target.id.replace('card-', '');
-          // PERSISTENT SEEN CHECK
           db.ref(`pickups/${cardId}/seen_by/${currentDriver}`).once('value', snapshot => {
             if (!snapshot.exists()) {
               setTimeout(() => {
@@ -302,7 +313,6 @@
     }, { threshold: 0.5 });
   }
 
-  // NEW PERSISTENT STORAGE FUNCTION
   function markAsSeenPersistent(id) {
     db.ref(`pickups/${id}/seen_by/${currentDriver}`).set(true).then(() => {
         const card = document.getElementById(`card-${id}`);
@@ -371,6 +381,21 @@
         assigned_to: "",
         status: "pending"
       }).catch(err => alert("Error declining job: " + err.message));
+    }
+  }
+
+  // --- NEW FEATURE: NOTIFICATION DISMISSAL ---
+  function scrollToJob(id) {
+    // Dismiss "New Info" logic
+    const ackKey = `ack_${id}`;
+    localStorage.setItem(ackKey, Date.now());
+    
+    const card = document.getElementById(`card-${id}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Remove visual "New Info" text immediately
+      const notif = document.querySelector(`#q-item-${id} .edit-notif`);
+      if (notif) notif.remove();
     }
   }
 
@@ -485,25 +510,35 @@
       const contactName = p.name || 'No Name';
       const item = document.createElement("div"); 
       item.className = "history-item";
+      item.id = `q-item-${id}`;
       
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
       }
-      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>`;
+
+      // --- NEW FEATURE: REAL-TIME EDIT DETECTION ---
+      let editBadge = "";
+      const lastAck = localStorage.getItem(`ack_${id}`) || 0;
+      if (p.last_edited && p.last_edited > lastAck) {
+        editBadge = `<span class="edit-notif">NEW INFO</span>`;
+      }
+
+      item.innerHTML = `<strong>${shortAddr}</strong><span class="history-contact">${contactName}</span>${editBadge}`;
 
       if (p.status === 'completed') {
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
         pendingCount++;
+        item.onclick = () => scrollToJob(id); // Integration point for notification removal
         qLog.appendChild(item);
+        
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
         
-        // PERSISTENT DATA-DRIVEN HIGHLIGHT
         const hasBeenSeen = p.seen_by && p.seen_by[currentDriver];
         if (!hasBeenSeen) {
           card.classList.add('new-job-highlight');
