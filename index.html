@@ -231,23 +231,31 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 <script>
-  firebase.initializeApp({
+  const firebaseConfig = {
     apiKey: "AIzaSyAKmgoXA4m3cRTmxJq4aUyva5SVvFbTNqg",
     authDomain: "eandccourier-36fcc.firebaseapp.com",
     databaseURL: "https://eandccourier-36fcc-default-rtdb.firebaseio.com",
-    projectId: "eandccourier-36fcc"
-  }); 
+    projectId: "eandccourier-36fcc",
+    messagingSenderId: "777421115160",
+    appId: "1:777421115160:web:4475459312b988f0003070"
+  };
 
+  firebase.initializeApp(firebaseConfig); 
+  const db = firebase.database();
+  const messaging = firebase.messaging();
+
+  // Register the SINGLE correct service worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then(reg => console.log('Primary SW active'));
-      navigator.serviceWorker.register('firebase-messaging-sw.js').then(reg => console.log('Messaging SW active'));
+      navigator.serviceWorker.register('firebase-messaging-sw.js')
+        .then(reg => console.log('Driver App SW Active'))
+        .catch(err => console.log('SW Error:', err));
     });
   }
 
   firebase.auth().signInAnonymously();
-  const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
   const VALID_DRIVERS = { "Matt": "1111", "Touch": "2222", "Julian": "3333", "Jess": "4444" };
@@ -274,9 +282,20 @@
   let wakeLock = null;
 
   async function startContinuousTracking() {
-    // FIX: Ask for permission AFTER login screen clears
+    // 1. Ask for notification permission after login
     if ("Notification" in window) {
-      setTimeout(() => { Notification.requestPermission(); }, 1500);
+      setTimeout(async () => { 
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          // 2. Get the Device Token and save it to the database so the server can find this phone
+          messaging.getToken({ vapidKey: 'BMYpX7-U_eG0v8oN_s6P_zKqLp-W6E_7z7E6-m6Y7z7E6-m6Y7z7E6' }) // Replace with your Public VAPID Key from Firebase
+            .then((currentToken) => {
+              if (currentToken) {
+                db.ref(`driver_tokens/${currentDriver}`).set(currentToken);
+              }
+            }).catch(err => console.log("Token error:", err));
+        }
+      }, 1500);
     }
 
     if ('wakeLock' in navigator) {
