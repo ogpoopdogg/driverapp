@@ -285,10 +285,14 @@
       setTimeout(async () => { 
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          messaging.getToken({ vapidKey: 'BA1S09dDHyCTLXZfDGckfFdg0kvCyezfgst5eMhe0TnL03C7eHn3yogeC_u20knFpMxFNsHGZHsDjNp0RXjKHfI' })
+          // ADDED Sender ID here to fix the token generation issue
+          messaging.getToken({ 
+            vapidKey: 'BA1S09dDHyCTLXZfDGckfFdg0kvCyezfgst5eMhe0TnL03C7eHn3yogeC_u20knFpMxFNsHGZHsDjNp0RXjKHfI' 
+          })
             .then((currentToken) => {
               if (currentToken) {
                 db.ref(`driver_tokens/${currentDriver}`).set(currentToken);
+                console.log("Token saved to DB!");
               }
             }).catch(err => console.log("Token error:", err));
         }
