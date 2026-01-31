@@ -26,17 +26,18 @@
       animation: update-glow 1.5s infinite alternate !important;
     }
 
-    /* FIELD SPECIFIC HIGHLIGHTING */
+    /* SPECIFIC FIELD HIGHLIGHTING */
     .field-highlight {
       color: var(--update-blue) !important;
-      text-shadow: 0 0 8px var(--update-blue);
+      text-shadow: 0 0 10px var(--update-blue);
       font-weight: bold;
-      animation: field-pulse 1.5s infinite alternate;
+      animation: field-pulse 1s infinite alternate;
+      display: inline-block;
     }
 
     @keyframes field-pulse {
-      from { opacity: 0.7; transform: scale(1); }
-      to { opacity: 1; transform: scale(1.02); }
+      from { opacity: 0.8; transform: scale(1); }
+      to { opacity: 1; transform: scale(1.05); }
     }
 
     .update-badge {
@@ -355,7 +356,7 @@
     });
   }
 
-  // Handle clearing highlights ONLY when card is acknowledged/touched
+  // Handle clearing highlights when card is acknowledged/touched
   function acknowledgeUpdate(id) {
     sessionStorage.setItem(`ack_update_${id}`, 'true');
     const card = document.getElementById(`card-${id}`);
@@ -363,8 +364,10 @@
     
     if(card) {
       card.classList.remove('has-update');
-      // Remove specific field highlights on interaction
-      card.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
+      // Remove specific field highlights
+      card.querySelectorAll('.field-highlight').forEach(el => {
+          el.classList.remove('field-highlight');
+      });
     }
     if(mini) mini.classList.remove('has-update');
     
@@ -428,10 +431,8 @@
     box.style.display = isOpening ? "block" : "none";
     btn.innerText = isOpening ? "HIDE" : "INFO";
     
-    // Clear update highlights when closing
-    if(!isOpening) {
-        acknowledgeUpdate(id);
-    }
+    // If user interacts with info, clear field highlights
+    acknowledgeUpdate(id);
   }
 
   function restoreToQueue(id) {
@@ -532,7 +533,7 @@
       } catch (err) {
         console.error("Routing Error:", err);
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/?api=1&waypoints=${fallback}`, '_blank');
+        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
       } finally {
         btn.innerText = oldText;
       }
@@ -559,25 +560,26 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
-      // FIELD-LEVEL CHANGE DETECTION
+      // GRANULAR FIELD TRACKING
       const currentFields = {
           addr: p.pickup_location,
           dest: p.destination,
           contact: p.name,
           po: p.po_number,
           notes: p.other_info,
-          type: p.package_type
+          type: p.package_type,
+          size: `${p.dimensions?.length}x${p.dimensions?.width}x${p.dimensions?.height}`
       };
 
       const changedFields = [];
       const acked = sessionStorage.getItem(`ack_update_${id}`);
 
-      // Compare against historical snapshot
       if (fieldSnapshots[id]) {
           Object.keys(currentFields).forEach(key => {
               if (fieldSnapshots[id][key] !== currentFields[key]) {
-                changedFields.push(key);
-                sessionStorage.removeItem(`ack_update_${id}`); // Force highlight if new change occurs
+                  changedFields.push(key);
+                  // If a change happened, reset acknowledgment so user sees it
+                  sessionStorage.removeItem(`ack_update_${id}`);
               }
           });
       }
@@ -598,7 +600,6 @@
       
       if(needsAlert) item.classList.add('has-update');
 
-      // Enhanced sidebar display
       item.innerHTML = `
         <strong>${shortAddr}</strong>
         <span class="history-contact">${contactName}</span>
@@ -610,14 +611,14 @@
         rLog.appendChild(item);
       } else {
         pendingCount++;
-        item.onclick = () => scrollToCard(id); // Sidebar Navigation
+        item.onclick = () => scrollToCard(id); 
         qLog.appendChild(item);
 
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
-        card.onclick = () => acknowledgeUpdate(id); // Global click to clear
+        card.onclick = () => acknowledgeUpdate(id);
         
         if (!p.seen_by || !p.seen_by[currentDriver]) {
           card.classList.add('new-job-highlight');
@@ -643,7 +644,7 @@
             </div>
             <div class="specs-side">
               <div><div class="card-label">Type</div><div class="tech-info ${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}">${p.package_type}</div></div>
-              <div><div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
+              <div><div class="card-label">Size</div><div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
           <div class="time-stack">
