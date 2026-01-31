@@ -48,6 +48,20 @@
       vertical-align: middle;
     }
 
+    /* NEW STOPS INDICATOR STYLE */
+    .new-stops-badge {
+      background: rgba(76, 175, 80, 0.2);
+      color: var(--active-green);
+      border: 1px solid var(--active-green);
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-left: 5px;
+      font-weight: 800;
+      display: none;
+      vertical-align: middle;
+    }
+
     @keyframes counter-glow {
       from { box-shadow: 0 0 2px var(--queue-orange); border-color: rgba(255,152,0,0.5); }
       to { box-shadow: 0 0 10px var(--queue-orange); border-color: var(--queue-orange); }
@@ -87,27 +101,6 @@
       padding: 12px 5px; background: #222; border: 2px solid #444;
       color: #666; font-weight: 900; font-size: 12px; border-radius: 8px;
       cursor: pointer; text-align: center; z-index: 100; transition: all 0.3s;
-    }
-
-    .new-pickup-alert {
-      position: fixed;
-      bottom: 58px;
-      left: 5px;
-      width: 130px;
-      text-align: center;
-      color: var(--active-green);
-      font-weight: 900;
-      font-size: 14px;
-      text-transform: uppercase;
-      z-index: 101;
-      pointer-events: none;
-      animation: alert-pulse 0.8s infinite alternate;
-      display: none;
-    }
-
-    @keyframes alert-pulse {
-      from { opacity: 0.5; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1.05); }
     }
     
     .glow-active {
@@ -149,24 +142,13 @@
 
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
     #live-feed { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; position: relative; overflow: hidden; }
+    .active-card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #444; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both, softPulse 3s infinite ease-in-out; transition: all 0.5s ease; }
 
-    /* NEW JOB ANIMATIONS */
-    .new-job-glow {
-      animation: card-new-pulse 1.5s infinite alternate;
-      border-color: var(--accent) !important;
-    }
-    .new-job-glow::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(255, 204, 0, 0.07);
-      pointer-events: none;
-      z-index: 1;
-    }
-    @keyframes card-new-pulse {
-      from { box-shadow: 0 0 5px rgba(255, 204, 0, 0.2); }
-      to { box-shadow: 0 0 20px rgba(255, 204, 0, 0.5); }
+    /* NEW JOB GLOW & TINT */
+    .new-job-highlight {
+      border: 1px solid var(--active-green) !important;
+      box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+      background: linear-gradient(135deg, #1a1a1a 0%, #1e2a1e 100%) !important;
     }
 
     @keyframes softPulse { 0% { border-color: #444; } 50% { border-color: #666; } 100% { border-color: #444; } }
@@ -225,7 +207,6 @@
     <div id="queue-log"></div>
     <div class="section-label-done">Done (Today)</div>
     <div id="recent-log"></div>
-    <div id="new-pickup-indicator" class="new-pickup-alert">New Pickup</div>
     <button id="multi-route-btn" onclick="routeOptimized()">ROUTE NAV</button>
   </div>
   <div id="live-feed"></div>
@@ -246,9 +227,10 @@
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
-  // Logic to track "truly new" pickups
-  let initialLoadComplete = false;
-  let activeNewJobs = new Set();
+  // NEW TRACKING VARIABLES
+  let seenJobs = new Set();
+  let newStopsCount = 0;
+  let observer = null;
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -263,22 +245,17 @@
   let wakeLock = null;
 
   async function startContinuousTracking() {
-    // 1. Notification Permission
     if ("Notification" in window) {
       Notification.requestPermission();
     }
-
-    // 2. Wake Lock (Prevent sleep)
     if ('wakeLock' in navigator) {
       try {
         wakeLock = await navigator.wakeLock.request('screen');
-        console.log("Wake Lock active");
       } catch (err) {
         console.warn("Wake Lock failed:", err.message);
       }
     }
 
-    // 3. GPS Tracking
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition((pos) => {
       const now = Date.now();
@@ -294,7 +271,6 @@
     }, (err) => console.warn("GPS Error:", err.message), 
     { enableHighAccuracy: true, maximumAge: 0 });
   }
-  // --- END UPDATED SYSTEM ---
 
   if(currentDriver) {
     document.getElementById('login-overlay').style.display = 'none';
@@ -302,8 +278,55 @@
       <img src="icon-512.png" class="header-logo">
       ${currentDriver}
       <span id="stop-counter" class="stop-badge">0 STOPS</span>
+      <span id="new-stops-badge" class="new-stops-badge">0 NEW</span>
     `;
     startContinuousTracking();
+    setupIntersectionObserver();
+  }
+
+  // INTERSECTION OBSERVER LOGIC
+  function setupIntersectionObserver() {
+    observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const cardId = entry.target.id.replace('card-', '');
+          if (!seenJobs.has(cardId)) {
+            // Wait 3 seconds then mark as seen
+            setTimeout(() => {
+              if (document.getElementById(entry.target.id)) {
+                markAsSeen(cardId);
+              }
+            }, 3000);
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+  }
+
+  function markAsSeen(id) {
+    if (seenJobs.has(id)) return;
+    seenJobs.add(id);
+    const card = document.getElementById(`card-${id}`);
+    if (card) {
+      card.classList.remove('new-job-highlight');
+      updateNewStopsCount();
+    }
+  }
+
+  function updateNewStopsCount() {
+    const pendingCards = document.querySelectorAll('.active-card');
+    let count = 0;
+    pendingCards.forEach(card => {
+      const id = card.id.replace('card-', '');
+      if (!seenJobs.has(id)) count++;
+    });
+    
+    newStopsCount = count;
+    const badge = document.getElementById('new-stops-badge');
+    if (badge) {
+      badge.innerText = `${newStopsCount} NEW`;
+      badge.style.display = newStopsCount > 0 ? 'inline-block' : 'none';
+    }
   }
 
   function attemptLogin() {
@@ -354,8 +377,6 @@
       db.ref("pickups").child(id).update({ 
         assigned_to: "",
         status: "pending"
-      }).then(() => {
-        console.log("Job returned to command center.");
       }).catch(err => alert("Error declining job: " + err.message));
     }
   }
@@ -482,33 +503,17 @@
       } else {
         pendingCount++;
         qLog.appendChild(item);
-
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
-        card.id = `card-${id}`;
-
-        // Handle NEW job logic
-        if (initialLoadComplete && !activeNewJobs.has(id)) {
-            activeNewJobs.add(id);
-            card.classList.add('new-job-glow');
-            document.getElementById('new-pickup-indicator').style.display = 'block';
-        } else if (activeNewJobs.has(id)) {
-            // Keep glow if it was already marked as new but not yet clicked
-            card.classList.add('new-job-glow');
+        
+        // APPLY NEW HIGHLIGHT IF NOT SEEN
+        if (!seenJobs.has(id)) {
+          card.classList.add('new-job-highlight');
         }
 
-        card.addEventListener('click', () => {
-            if (activeNewJobs.has(id)) {
-                activeNewJobs.delete(id);
-                card.classList.remove('new-job-glow');
-                if (activeNewJobs.size === 0) {
-                    document.getElementById('new-pickup-indicator').style.display = 'none';
-                }
-            }
-        });
-
+        card.id = `card-${id}`;
         card.innerHTML = `
           <div class="card-date-badge">${formatDateShort(p.timestamp)}</div>
           <div class="card-layout">
@@ -520,8 +525,8 @@
               <div class="drop-value">${p.destination}</div>
             </div>
             <div class="specs-side">
-              <div class="card-label">Type</div><div class="tech-info">${p.package_type}</div>
-              <div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div>
+              <div><div class="card-label">Type</div><div class="tech-info">${p.package_type}</div></div>
+              <div><div class="card-label">Size</div><div class="tech-info">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
           <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
@@ -537,11 +542,11 @@
           </div>
         `;
         feed.appendChild(card);
+        if (observer) observer.observe(card);
       }
     });
 
-    if (!initialLoadComplete) initialLoadComplete = true;
-
+    updateNewStopsCount();
     if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
 
     if(pendingCount >= 20) {
@@ -574,7 +579,10 @@
   setInterval(updateClock, 1000); updateClock();
 
   window.onload = () => {
-    if(currentDriver) startContinuousTracking();
+    if(currentDriver) {
+        startContinuousTracking();
+        setupIntersectionObserver();
+    }
   };
 </script>
 </body>
