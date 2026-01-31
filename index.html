@@ -163,7 +163,6 @@
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
     
-    /* MODIFIED TIME STACK STYLE */
     .time-stack { text-align: center; margin: 8px 0; }
     .job-time-stamp { font-size: 20px; font-weight: 900; color: #FFB020; margin-bottom: 2px; }
     .job-date-stamp { font-size: 12px; font-weight: 900; color: #888; text-transform: uppercase; }
@@ -230,8 +229,6 @@
   const db = firebase.database();
   let currentDriver = localStorage.getItem('ec_driver_name');
 
-  let seenJobs = new Set();
-  let newStopsCount = 0;
   let observer = null;
 
   const VALID_DRIVERS = {
@@ -290,41 +287,38 @@
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const cardId = entry.target.id.replace('card-', '');
-          if (!seenJobs.has(cardId)) {
-            setTimeout(() => {
-              if (document.getElementById(entry.target.id)) {
-                markAsSeen(cardId);
-              }
-            }, 3000);
-          }
+          // PERSISTENT SEEN CHECK
+          db.ref(`pickups/${cardId}/seen_by/${currentDriver}`).once('value', snapshot => {
+            if (!snapshot.exists()) {
+              setTimeout(() => {
+                if (document.getElementById(entry.target.id)) {
+                  markAsSeenPersistent(cardId);
+                }
+              }, 3000);
+            }
+          });
         }
       });
     }, { threshold: 0.5 });
   }
 
-  function markAsSeen(id) {
-    if (seenJobs.has(id)) return;
-    seenJobs.add(id);
-    const card = document.getElementById(`card-${id}`);
-    if (card) {
-      card.classList.remove('new-job-highlight');
-      updateNewStopsCount();
-    }
+  // NEW PERSISTENT STORAGE FUNCTION
+  function markAsSeenPersistent(id) {
+    db.ref(`pickups/${id}/seen_by/${currentDriver}`).set(true).then(() => {
+        const card = document.getElementById(`card-${id}`);
+        if (card) {
+          card.classList.remove('new-job-highlight');
+          updateNewStopsCountUI();
+        }
+    });
   }
 
-  function updateNewStopsCount() {
-    const pendingCards = document.querySelectorAll('.active-card');
-    let count = 0;
-    pendingCards.forEach(card => {
-      const id = card.id.replace('card-', '');
-      if (!seenJobs.has(id)) count++;
-    });
-    
-    newStopsCount = count;
+  function updateNewStopsCountUI() {
+    const newCards = document.querySelectorAll('.new-job-highlight');
     const badge = document.getElementById('new-stops-badge');
     if (badge) {
-      badge.innerText = `${newStopsCount} NEW`;
-      badge.style.display = newStopsCount > 0 ? 'inline-block' : 'none';
+      badge.innerText = `${newCards.length} NEW`;
+      badge.style.display = newCards.length > 0 ? 'inline-block' : 'none';
     }
   }
 
@@ -481,7 +475,6 @@
     const lastDoneId = sessionStorage.getItem('last_completed_job');
     let pendingCount = 0;
 
-    // MODIFIED SORTING LOGIC: CHRONOLOGICAL (OLDEST TO NEWEST)
     const sortedEntries = Object.entries(data).sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
 
     sortedEntries.forEach(([id, p]) => {
@@ -510,7 +503,9 @@
         const card = document.createElement("div"); 
         card.className = "active-card";
         
-        if (!seenJobs.has(id)) {
+        // PERSISTENT DATA-DRIVEN HIGHLIGHT
+        const hasBeenSeen = p.seen_by && p.seen_by[currentDriver];
+        if (!hasBeenSeen) {
           card.classList.add('new-job-highlight');
         }
 
@@ -550,7 +545,7 @@
       }
     });
 
-    updateNewStopsCount();
+    updateNewStopsCountUI();
     if (stopCounter) stopCounter.innerText = `${pendingCount} STOP${pendingCount !== 1 ? 'S' : ''}`;
 
     if(pendingCount >= 20) {
