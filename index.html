@@ -35,6 +35,13 @@
       display: inline-block;
     }
 
+    /* INFO BUTTON ANIMATION */
+    .info-btn-animate {
+      animation: field-pulse 1s infinite alternate !important;
+      background: rgba(0, 212, 255, 0.1) !important;
+      box-shadow: 0 0 15px var(--update-blue) !important;
+    }
+
     @keyframes field-pulse {
       from { opacity: 0.8; transform: scale(1); }
       to { opacity: 1; transform: scale(1.05); }
@@ -189,7 +196,7 @@
 
     .new-job-highlight {
       border: 3px solid var(--active-green) !important;
-      box-shadow: box-shadow: 0 0 100px rgba(76, 175, 80, 1), 0 0 30px #fff;
+      box-shadow: 0 0 100px rgba(76, 175, 80, 1), 0 0 30px #fff;
       background: linear-gradient(135deg, #1a1a1a 0%, #1e2a1e 100%) !important;
     }
 
@@ -274,7 +281,7 @@
   let currentDriver = localStorage.getItem('ec_driver_name');
 
   let observer = null;
-  let fieldSnapshots = {}; // Tracks specific fields to detect partial updates
+  let fieldSnapshots = {}; 
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -356,31 +363,29 @@
     });
   }
 
-  // Handle clearing highlights when card is acknowledged/touched
   function acknowledgeUpdate(id) {
-    sessionStorage.setItem(`ack_update_${id}`, 'true');
-    const card = document.getElementById(`card-${id}`);
-    const mini = document.getElementById(`mini-${id}`);
-    
-    if(card) {
-      card.classList.remove('has-update');
-      // Remove specific field highlights
-      card.querySelectorAll('.field-highlight').forEach(el => {
-          el.classList.remove('field-highlight');
-      });
-    }
-    if(mini) mini.classList.remove('has-update');
-    
-    const badge = document.getElementById(`badge-${id}`);
-    if(badge) badge.style.display = 'none';
+    setTimeout(() => {
+      sessionStorage.setItem(`ack_update_${id}`, 'true');
+      const card = document.getElementById(`card-${id}`);
+      const mini = document.getElementById(`mini-${id}`);
+      
+      if(card) {
+        card.classList.remove('has-update');
+        card.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
+        const infoBtn = card.querySelector('.info-btn');
+        if(infoBtn) infoBtn.classList.remove('info-btn-animate');
+      }
+      if(mini) mini.classList.remove('has-update');
+      
+      const badge = document.getElementById(`badge-${id}`);
+      if(badge) badge.style.display = 'none';
+    }, 3000);
   }
 
-  // Navigation: Click mini-card to scroll to main card
   function scrollToCard(id) {
     const card = document.getElementById(`card-${id}`);
     if (card) {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Brief visual flash to show focus
       card.style.transition = '0.3s';
       card.style.background = '#2a2a2a';
       setTimeout(() => card.style.background = 'var(--card-bg)', 500);
@@ -427,11 +432,8 @@
   function toggleDetails(btn, id) {
     const box = btn.closest('.active-card').querySelector('.details-box');
     const isOpening = box.style.display !== "block";
-    
     box.style.display = isOpening ? "block" : "none";
     btn.innerText = isOpening ? "HIDE" : "INFO";
-    
-    // If user interacts with info, clear field highlights
     acknowledgeUpdate(id);
   }
 
@@ -560,7 +562,6 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
-      // GRANULAR FIELD TRACKING
       const currentFields = {
           addr: p.pickup_location,
           dest: p.destination,
@@ -580,7 +581,6 @@
           Object.keys(currentFields).forEach(key => {
               if (fieldSnapshots[id][key] !== currentFields[key]) {
                   changedFields.push(key);
-                  // If a change happened, reset acknowledgment so user sees it
                   sessionStorage.removeItem(`ack_update_${id}`);
               }
           });
@@ -588,6 +588,7 @@
       fieldSnapshots[id] = { ...currentFields };
 
       const needsAlert = changedFields.length > 0 && !acked;
+      const internalChange = changedFields.some(f => ['contact', 'po', 'notes'].includes(f));
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const contactName = p.name || 'No Name';
@@ -672,7 +673,7 @@
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
-            <button class="info-btn" onclick="toggleDetails(this, '${id}')">INFO</button>
+            <button class="info-btn ${internalChange && needsAlert ? 'info-btn-animate' : ''}" onclick="toggleDetails(this, '${id}')">INFO</button>
             <button class="done-btn" onclick="markDone('${id}')">DONE</button>
           </div>
         `;
