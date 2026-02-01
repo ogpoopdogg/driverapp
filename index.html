@@ -35,6 +35,13 @@
       display: inline-block;
     }
 
+    /* INFO BUTTON ANIMATION */
+    .info-btn-animate {
+      animation: field-pulse 1s infinite alternate !important;
+      background: rgba(0, 212, 255, 0.1) !important;
+      box-shadow: 0 0 15px var(--update-blue) !important;
+    }
+
     @keyframes field-pulse {
       from { opacity: 0.8; transform: scale(1); }
       to { opacity: 1; transform: scale(1.05); }
@@ -189,7 +196,7 @@
 
     .new-job-highlight {
       border: 3px solid var(--active-green) !important;
-      box-shadow: box-shadow: 0 0 100px rgba(76, 175, 80, 1), 0 0 30px #fff;
+      box-shadow: 0 0 100px rgba(76, 175, 80, 1), 0 0 30px #fff;
       background: linear-gradient(135deg, #1a1a1a 0%, #1e2a1e 100%) !important;
     }
 
@@ -203,7 +210,7 @@
     .nav-link { text-decoration: none; color: inherit; }
     .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px; }
     .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
-    .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
+    .drop-value { font-size: 18px; font-800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
     
@@ -274,7 +281,8 @@
   let currentDriver = localStorage.getItem('ec_driver_name');
 
   let observer = null;
-  let fieldSnapshots = {}; // Tracks specific fields to detect partial updates
+  let fieldSnapshots = {}; 
+  let pendingAlerts = {};
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -356,31 +364,30 @@
     });
   }
 
-  // Handle clearing highlights when card is acknowledged/touched
   function acknowledgeUpdate(id) {
-    sessionStorage.setItem(`ack_update_${id}`, 'true');
-    const card = document.getElementById(`card-${id}`);
-    const mini = document.getElementById(`mini-${id}`);
-    
-    if(card) {
-      card.classList.remove('has-update');
-      // Remove specific field highlights
-      card.querySelectorAll('.field-highlight').forEach(el => {
-          el.classList.remove('field-highlight');
-      });
-    }
-    if(mini) mini.classList.remove('has-update');
-    
-    const badge = document.getElementById(`badge-${id}`);
-    if(badge) badge.style.display = 'none';
+    setTimeout(() => {
+      sessionStorage.setItem(`ack_update_${id}`, 'true');
+      delete pendingAlerts[id];
+      const card = document.getElementById(`card-${id}`);
+      const mini = document.getElementById(`mini-${id}`);
+      
+      if(card) {
+        card.classList.remove('has-update');
+        card.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
+        const infoBtn = card.querySelector('.info-btn');
+        if(infoBtn) infoBtn.classList.remove('info-btn-animate');
+      }
+      if(mini) mini.classList.remove('has-update');
+      
+      const badge = document.getElementById(`badge-${id}`);
+      if(badge) badge.style.display = 'none';
+    }, 3000);
   }
 
-  // Navigation: Click mini-card to scroll to main card
   function scrollToCard(id) {
     const card = document.getElementById(`card-${id}`);
     if (card) {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Brief visual flash to show focus
       card.style.transition = '0.3s';
       card.style.background = '#2a2a2a';
       setTimeout(() => card.style.background = 'var(--card-bg)', 500);
@@ -427,11 +434,8 @@
   function toggleDetails(btn, id) {
     const box = btn.closest('.active-card').querySelector('.details-box');
     const isOpening = box.style.display !== "block";
-    
     box.style.display = isOpening ? "block" : "none";
     btn.innerText = isOpening ? "HIDE" : "INFO";
-    
-    // If user interacts with info, clear field highlights
     acknowledgeUpdate(id);
   }
 
@@ -469,7 +473,7 @@
   }
 
   async function routeOptimized() {
-    const GOOGLE_KEY = "AIzaSyAME2ZEo0_1etU687ikgK_hBqkRzxabiTo";
+    const GOOGLE_KEY = "AIzaSyDltbEbiqlyQjyaGth0AzIkfLpOYr96YeQ";
     const btn = document.getElementById("multi-route-btn");
     const oldText = btn.innerText;
     
@@ -560,7 +564,6 @@
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
-      // GRANULAR FIELD TRACKING
       const currentFields = {
           addr: p.pickup_location,
           dest: p.destination,
@@ -568,24 +571,27 @@
           po: p.po_number,
           notes: p.other_info,
           type: p.package_type,
+          qty: p.quantity,
+          extra: p.additional_packages,
           size: `${p.dimensions?.length}x${p.dimensions?.width}x${p.dimensions?.height}`
       };
 
-      const changedFields = [];
       const acked = sessionStorage.getItem(`ack_update_${id}`);
 
       if (fieldSnapshots[id]) {
           Object.keys(currentFields).forEach(key => {
               if (fieldSnapshots[id][key] !== currentFields[key]) {
-                  changedFields.push(key);
-                  // If a change happened, reset acknowledgment so user sees it
+                  if (!pendingAlerts[id]) pendingAlerts[id] = [];
+                  if (!pendingAlerts[id].includes(key)) pendingAlerts[id].push(key);
                   sessionStorage.removeItem(`ack_update_${id}`);
               }
           });
       }
       fieldSnapshots[id] = { ...currentFields };
 
+      const changedFields = pendingAlerts[id] || [];
       const needsAlert = changedFields.length > 0 && !acked;
+      const internalChange = changedFields.some(f => ['contact', 'po', 'notes'].includes(f));
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const contactName = p.name || 'No Name';
@@ -629,12 +635,13 @@
         card.id = `card-${id}`;
         card.innerHTML = `
           <div class="card-date-badge">
-            ${formatDateShort(p.timestamp)}
             ${needsAlert ? `<span id="badge-${id}" class="update-badge">NEW INFO</span>` : ''}
           </div>
           <div class="card-layout">
             <div class="address-side">
               <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
+              <div class="card-label" style="margin-top:2px;">Contact</div>
+              <div class="tech-info ${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}" style="margin-bottom:6px; color: #ffffff; font-size:16px;">${p.name || 'N/A'}</div>
               <div class="card-label">Pickup</div>
               <a href="${navUrl}" target="_blank" class="nav-link">
                 <div class="pickup-value ${needsAlert && changedFields.includes('addr') ? 'field-highlight' : ''}">${p.pickup_location}</div>
@@ -643,7 +650,19 @@
               <div class="drop-value ${needsAlert && changedFields.includes('dest') ? 'field-highlight' : ''}">${p.destination}</div>
             </div>
             <div class="specs-side">
-              <div><div class="card-label">Type</div><div class="tech-info ${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}">${p.package_type}</div></div>
+              <div>
+                <div class="card-label">Qty / Type</div>
+                <div class="tech-info">
+                   <span class="${needsAlert && changedFields.includes('qty') ? 'field-highlight' : ''}">${p.quantity || "1"}</span>
+                   <span class="dim-x"> / </span>
+                   <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}">${p.package_type}</span>
+                </div>
+              </div>
+              ${p.additional_packages ? `
+              <div>
+                <div class="card-label">Additional</div>
+                <div class="tech-info ${needsAlert && changedFields.includes('extra') ? 'field-highlight' : ''}">${p.additional_packages}</div>
+              </div>` : ''}
               <div><div class="card-label">Size</div><div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
@@ -652,13 +671,12 @@
             <div class="job-date-stamp">${formatDateShort(p.timestamp)}</div>
           </div>
           <div class="details-box">
-            <div><span style="color:var(--accent)">CONTACT:</span> <span class="${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}">${p.name || 'N/A'}</span></div>
             <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
             <div><span style="color:var(--accent)">NOTES:</span> <span class="${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
-            <button class="info-btn" onclick="toggleDetails(this, '${id}')">INFO</button>
+            <button class="info-btn ${internalChange && needsAlert ? 'info-btn-animate' : ''}" onclick="toggleDetails(this, '${id}')">INFO</button>
             <button class="done-btn" onclick="markDone('${id}')">DONE</button>
           </div>
         `;
