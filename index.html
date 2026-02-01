@@ -568,6 +568,8 @@
           po: p.po_number,
           notes: p.other_info,
           type: p.package_type,
+          qty: p.quantity,
+          extra: p.additional_packages,
           size: `${p.dimensions?.length}x${p.dimensions?.width}x${p.dimensions?.height}`
       };
 
@@ -643,7 +645,19 @@
               <div class="drop-value ${needsAlert && changedFields.includes('dest') ? 'field-highlight' : ''}">${p.destination}</div>
             </div>
             <div class="specs-side">
-              <div><div class="card-label">Type</div><div class="tech-info ${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}">${p.package_type}</div></div>
+              <div>
+                <div class="card-label">Qty / Type</div>
+                <div class="tech-info">
+                   <span class="${needsAlert && changedFields.includes('qty') ? 'field-highlight' : ''}">${p.quantity || "1"}</span>
+                   <span class="dim-x"> / </span>
+                   <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}">${p.package_type}</span>
+                </div>
+              </div>
+              ${p.additional_packages ? `
+              <div>
+                <div class="card-label">Additional</div>
+                <div class="tech-info ${needsAlert && changedFields.includes('extra') ? 'field-highlight' : ''}">${p.additional_packages}</div>
+              </div>` : ''}
               <div><div class="card-label">Size</div><div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div></div>
             </div>
           </div>
