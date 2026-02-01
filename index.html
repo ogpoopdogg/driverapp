@@ -515,6 +515,39 @@
         const result = await response.json();
         let finalSequence = [];
 
+        // Reorder stops based on Google's optimization
+        if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
+          const order = result.routes[0].optimizedIntermediateWaypointIndex;
+          const middleStops = userLoc ? stops.slice(0, -1) : stops.slice(1, -1);
+          if (!userLoc) finalSequence.push(stops[0]);
+          order.forEach(idx => finalSequence.push(middleStops[idx]));
+          finalSequence.push(stops[stops.length - 1]);
+        } else {
+          finalSequence = stops;
+        }
+
+        // Build the Google Maps URL
+        const originParam = userLoc || encodeURIComponent(finalSequence[0]);
+        const destParam = encodeURIComponent(finalSequence[finalSequence.length - 1]);
+        const waypoints = finalSequence.slice(userLoc ? 0 : 1, -1);
+        const waypointParam = waypoints.map(s => encodeURIComponent(s)).join('|');
+        
+        const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}&waypoints=${waypointParam}&travelmode=driving`;
+        window.open(mapUrl, '_blank');
+
+      } catch (err) {
+        console.error("Routing Error:", err);
+        const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
+        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+      } finally {
+        btn.innerText = oldText;
+      }
+    });
+  }
+
+        const result = await response.json();
+        let finalSequence = [];
+
         if (result.routes && result.routes[0].optimizedIntermediateWaypointIndex) {
           const order = result.routes[0].optimizedIntermediateWaypointIndex;
           const middleStops = userLoc ? stops.slice(0, -1) : stops.slice(1, -1);
