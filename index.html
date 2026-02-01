@@ -632,12 +632,13 @@
         card.id = `card-${id}`;
         card.innerHTML = `
           <div class="card-date-badge">
-            ${formatDateShort(p.timestamp)}
             ${needsAlert ? `<span id="badge-${id}" class="update-badge">NEW INFO</span>` : ''}
           </div>
           <div class="card-layout">
             <div class="address-side">
               <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
+              <div class="card-label" style="margin-top:2px;">Contact</div>
+              <div class="tech-info ${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}" style="margin-bottom:6px; color: var(--accent); font-size:16px;">${p.name || 'N/A'}</div>
               <div class="card-label">Pickup</div>
               <a href="${navUrl}" target="_blank" class="nav-link">
                 <div class="pickup-value ${needsAlert && changedFields.includes('addr') ? 'field-highlight' : ''}">${p.pickup_location}</div>
@@ -667,7 +668,6 @@
             <div class="job-date-stamp">${formatDateShort(p.timestamp)}</div>
           </div>
           <div class="details-box">
-            <div><span style="color:var(--accent)">CONTACT:</span> <span class="${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}">${p.name || 'N/A'}</span></div>
             <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
             <div><span style="color:var(--accent)">NOTES:</span> <span class="${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
