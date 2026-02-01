@@ -585,8 +585,7 @@
               }
           });
       }
-      fieldSnapshots[id] = { ...currentFields };
-
+      
       const needsAlert = changedFields.length > 0 && !acked;
       const internalChange = changedFields.some(f => ['contact', 'po', 'notes'].includes(f));
 
@@ -680,6 +679,7 @@
         feed.appendChild(card);
         if (observer) observer.observe(card);
       }
+      fieldSnapshots[id] = { ...currentFields };
     });
 
     updateNewStopsCountUI();
