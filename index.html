@@ -210,7 +210,7 @@
     .nav-link { text-decoration: none; color: inherit; }
     .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px; }
     .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
-    .drop-value { font-size: 18px; font-weight: 800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
+    .drop-value { font-size: 18px; font-800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
     
@@ -282,6 +282,7 @@
 
   let observer = null;
   let fieldSnapshots = {}; 
+  let pendingAlerts = {};
 
   const VALID_DRIVERS = {
       "Matt": "1111",
@@ -366,6 +367,7 @@
   function acknowledgeUpdate(id) {
     setTimeout(() => {
       sessionStorage.setItem(`ack_update_${id}`, 'true');
+      delete pendingAlerts[id];
       const card = document.getElementById(`card-${id}`);
       const mini = document.getElementById(`mini-${id}`);
       
@@ -574,18 +576,20 @@
           size: `${p.dimensions?.length}x${p.dimensions?.width}x${p.dimensions?.height}`
       };
 
-      const changedFields = [];
       const acked = sessionStorage.getItem(`ack_update_${id}`);
 
       if (fieldSnapshots[id]) {
           Object.keys(currentFields).forEach(key => {
               if (fieldSnapshots[id][key] !== currentFields[key]) {
-                  changedFields.push(key);
+                  if (!pendingAlerts[id]) pendingAlerts[id] = [];
+                  if (!pendingAlerts[id].includes(key)) pendingAlerts[id].push(key);
                   sessionStorage.removeItem(`ack_update_${id}`);
               }
           });
       }
+      fieldSnapshots[id] = { ...currentFields };
 
+      const changedFields = pendingAlerts[id] || [];
       const needsAlert = changedFields.length > 0 && !acked;
       const internalChange = changedFields.some(f => ['contact', 'po', 'notes'].includes(f));
 
@@ -679,7 +683,6 @@
         feed.appendChild(card);
         if (observer) observer.observe(card);
       }
-      fieldSnapshots[id] = { ...currentFields };
     });
 
     updateNewStopsCountUI();
