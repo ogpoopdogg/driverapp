@@ -49,12 +49,7 @@
 
     .update-badge {
       background: var(--update-blue);
-      color: #000;
-      font-size: 10px;
-      font-weight: 900;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-left: 8px;
+      color: #000; font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; margin-left: 8px;
       animation: pulse-update 0.5s infinite alternate;
     }
 
@@ -533,9 +528,12 @@ document.addEventListener('keypress', (e) => {
 
   function saveDriverNote(id) {
     const newText = document.getElementById(`driver-edit-input-${id}`).value;
-    const taggedNote = `Driver Note (${currentDriver}): ${newText}`;
-    db.ref("pickups").child(id).update({ other_info: taggedNote })
-      .catch(err => alert("Save failed: " + err.message));
+    db.ref("pickups").child(id).child("other_info").once("value", s => {
+      const existing = s.val() || "";
+      const taggedNote = existing ? `${existing} | Driver Note (${currentDriver}): ${newText}` : `Driver Note (${currentDriver}): ${newText}`;
+      db.ref("pickups").child(id).update({ other_info: taggedNote })
+        .catch(err => alert("Save failed: " + err.message));
+    });
   }
 
   function getNavUrl(addr, city) {
@@ -657,6 +655,8 @@ document.addEventListener('keypress', (e) => {
           type: p.package_type,
           qty: p.quantity,
           extra: p.additional_packages,
+          status: p.status,
+          assigned: p.assigned_to,
           size: `${p.dimensions?.length}x${p.dimensions?.width}x${p.dimensions?.height}`
       };
 
@@ -723,7 +723,7 @@ document.addEventListener('keypress', (e) => {
 
         // ESCAPE QUOTES FOR DND FUNCTION STRING
         const escapedNotes = (p.other_info || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const isEdited = (p.other_info || "").includes("(Edited by") || (p.other_info || "").includes("DND (");
+        const isEdited = (p.other_info || "").includes("(Edited by") || (p.other_info || "").includes("DND (") || (p.other_info || "").includes("Driver Note (");
 
         card.id = `card-${id}`;
         card.innerHTML = `
