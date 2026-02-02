@@ -417,15 +417,17 @@ function attemptLogin() {
     } else {
       alert("Invalid Name or PIN. Check your Firebase data.");
     }
- }).catch(err => {
+  }).catch(err => {
     alert("Database error. Make sure your Rules are Published.");
   });
-}}  document.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
-        attemptLogin();
-    }
-  });
+}
 
+// This allows pressing 'Enter' to log in
+document.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
+    attemptLogin();
+  }
+});
   function formatTime12(ts) {
     const d = ts ? new Date(ts) : new Date();
     return d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
