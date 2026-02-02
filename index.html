@@ -396,14 +396,31 @@
     }
   }
 
-  function attemptLogin() {
-    const nameInput = document.getElementById('login-user').value.trim();
-    const pinInput = document.getElementById('login-pin').value;
 
-    if (!nameInput || !pinInput) {
-      alert("Please enter both Name and PIN");
-      return;
+function attemptLogin() {
+  const nameInput = document.getElementById('login-user').value.trim();
+  const pinInput = document.getElementById('login-pin').value;
+
+  if (!nameInput || !pinInput) {
+    alert("Please enter both Name and PIN");
+    return;
+  }
+
+  // This part connects to your Firebase 'driver_secrets' folder
+  db.ref(`driver_secrets/${nameInput}`).once('value', snapshot => {
+    const dbPin = snapshot.val();
+
+    // This compares your database PIN to what you typed
+    if (dbPin && dbPin.toString() === pinInput.toString()) {
+      localStorage.setItem('ec_driver_name', nameInput);
+      location.reload();
+    } else {
+      alert("Invalid Name or PIN. Check your Firebase boxes.");
     }
+  }).catch(err => {
+    alert("Database error. Make sure your Rules are Published.");
+  });
+} 
 
     // This looks into your database instead of the code list
     db.ref(`driver_secrets/${nameInput}`).once('value', snapshot => {
