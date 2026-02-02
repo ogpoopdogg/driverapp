@@ -284,13 +284,6 @@
   let fieldSnapshots = {}; 
   let pendingAlerts = {};
 
-  const VALID_DRIVERS = {
-      "Matt": "1111",
-      "Touch": "2222",
-      "Julian": "3333",
-      "Jess": "4444"
-  };
-
   let lastGpsUpdate = 0;
   const gpsInterval = 60000; 
   let wakeLock = null;
@@ -404,15 +397,28 @@
   }
 
   function attemptLogin() {
-      const nameInput = document.getElementById('login-user').value.trim();
-      const pinInput = document.getElementById('login-pin').value;
-      const driverKey = Object.keys(VALID_DRIVERS).find(k => k.toLowerCase() === nameInput.toLowerCase());
-      if (driverKey && VALID_DRIVERS[driverKey] === pinInput) {
-          localStorage.setItem('ec_driver_name', driverKey);
-          location.reload();
+    const nameInput = document.getElementById('login-user').value.trim();
+    const pinInput = document.getElementById('login-pin').value;
+
+    if (!nameInput || !pinInput) {
+      alert("Please enter both Name and PIN");
+      return;
+    }
+
+    // This looks into your database instead of the code list
+    db.ref(`driver_secrets/${nameInput}`).once('value', snapshot => {
+      const dbPin = snapshot.val();
+
+      if (dbPin && dbPin === pinInput) {
+        localStorage.setItem('ec_driver_name', nameInput);
+        location.reload();
       } else {
-          alert("Invalid Name or PIN");
+        alert("Invalid Name or PIN");
       }
+    }).catch(err => {
+      console.error("Login error:", err);
+      alert("Check your connection.");
+    });
   }
 
   document.addEventListener('keypress', (e) => {
