@@ -188,6 +188,13 @@
       100% { transform: scale(1); opacity: 1; background: #151515; }
     }
 
+    /* NEW MINI JOB ANIMATION */
+    .new-mini-pop { animation: miniPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes miniPop {
+      0% { transform: scale(0.8); opacity: 0; background: var(--update-blue); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
     .history-contact { color: var(--accent); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; }
     .history-package { color: #888; font-size: 10px; display: block; text-transform: uppercase; font-weight: bold; margin-top: 1px; }
 
@@ -237,6 +244,11 @@
       color: #000; border: none; border-radius: 6px; font-weight: 900; 
       font-size: 16px; cursor: pointer; text-transform: uppercase;
     }
+
+    /* EDITED NOTES STYLE */
+    .notes-edited { color: var(--queue-orange) !important; font-style: italic; }
+    .edit-note-input { width: 100%; background: #222; color: #fff; border: 1px solid var(--accent); border-radius: 4px; padding: 5px; font-family: inherit; margin-top: 5px; }
+    .save-note-btn { background: var(--active-green); color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; margin-top: 5px; cursor: pointer; }
 
     @keyframes pulseOrange { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.03); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
     @keyframes slideInRight { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -481,13 +493,31 @@ document.addEventListener('keypress', (e) => {
       return;
     }
 
-    const updatedNotes = existingNotes ? `${existingNotes} | DND: ${reason}` : `DND: ${reason}`;
+    // TAG DRIVER AND MARK AS EDITED
+    const updatedNotes = existingNotes ? `${existingNotes} | DND (${currentDriver}): ${reason}` : `DND (${currentDriver}): ${reason}`;
     
     db.ref("pickups").child(id).update({ 
       assigned_to: "",
       status: "pending",
       other_info: updatedNotes
     }).catch(err => alert("Error processing DND: " + err.message));
+  }
+
+  /* EDITABLE NOTES LOGIC */
+  function enterNoteEdit(id, currentNotes) {
+    const container = document.getElementById(`note-display-${id}`);
+    const safeNotes = currentNotes.replace(/\\'/g, "'");
+    container.innerHTML = `
+      <textarea id="edit-input-${id}" class="edit-note-input">${safeNotes}</textarea>
+      <button class="save-note-btn" onclick="saveNoteEdit('${id}')">SAVE</button>
+    `;
+  }
+
+  function saveNoteEdit(id) {
+    const newText = document.getElementById(`edit-input-${id}`).value;
+    const taggedNote = `${newText} (Edited by ${currentDriver})`;
+    db.ref("pickups").child(id).update({ other_info: taggedNote })
+      .catch(err => alert("Save failed: " + err.message));
   }
 
   function getNavUrl(addr, city) {
@@ -586,6 +616,9 @@ document.addEventListener('keypress', (e) => {
     const routeBtn = document.getElementById("multi-route-btn");
     const stopCounter = document.getElementById("stop-counter");
     
+    // CAPTURE EXISTING IDs BEFORE CLEARING
+    const existingQueueIds = Array.from(qLog.querySelectorAll('.history-item')).map(el => el.id.replace('mini-', ''));
+
     feed.innerHTML = ""; rLog.innerHTML = ""; qLog.innerHTML = "";
     const startOfToday = new Date().setHours(0,0,0,0);
     const lastDoneId = sessionStorage.getItem('last_completed_job');
@@ -632,6 +665,11 @@ document.addEventListener('keypress', (e) => {
       item.className = "history-item";
       item.id = `mini-${id}`;
       
+      // ANIMATE IF NEW TO PENDING LIST
+      if (p.status !== 'completed' && !existingQueueIds.includes(id) && existingQueueIds.length > 0) {
+        item.classList.add('new-mini-pop');
+      }
+
       if(id === lastDoneId) {
         item.classList.add('just-archived');
         sessionStorage.removeItem('last_completed_job');
@@ -664,6 +702,10 @@ document.addEventListener('keypress', (e) => {
         }
 
         if(needsAlert) card.classList.add('has-update');
+
+        // ESCAPE QUOTES FOR DND FUNCTION STRING
+        const escapedNotes = (p.other_info || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const isEdited = (p.other_info || "").includes("(Edited by") || (p.other_info || "").includes("DND (");
 
         card.id = `card-${id}`;
         card.innerHTML = `
@@ -705,8 +747,8 @@ document.addEventListener('keypress', (e) => {
           </div>
           <div class="details-box">
             <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
-            <div><span style="color:var(--accent)">NOTES:</span> <span class="${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
-            <button class="dnd-btn" onclick="dndJob('${id}', '${p.other_info ? p.other_info.replace(/'/g, "\\'") : ""}')">DND</button>
+            <div><span style="color:var(--accent)">NOTES:</span> <span id="note-display-${id}" class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}" onclick="enterNoteEdit('${id}', '${escapedNotes}')">${p.other_info || 'None'}</span></div>
+            <button class="dnd-btn" onclick="dndJob('${id}', '${escapedNotes}')">DND</button>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
