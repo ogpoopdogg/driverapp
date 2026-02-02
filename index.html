@@ -800,6 +800,7 @@ document.addEventListener('keypress', (e) => {
         setupIntersectionObserver();
     }
   };
+  document.addEventListener('click', e => { if(e.target.id && e.target.id.startsWith('note-display-')) { e.stopPropagation(); const id = e.target.id.split('-').pop(); db.ref(`pickups/${id}/other_info`).once('value', s => enterNoteEdit(id, (s.val() || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'"))); } });
 </script>
 </body>
 </html>
