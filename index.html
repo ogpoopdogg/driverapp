@@ -231,6 +231,13 @@
     }
     .decline-btn:active { background: var(--decline-red); color: #000; }
 
+    /* DND BUTTON STYLING */
+    .dnd-btn {
+      width: 100%; margin-top: 10px; padding: 12px; background: var(--queue-orange); 
+      color: #000; border: none; border-radius: 6px; font-weight: 900; 
+      font-size: 16px; cursor: pointer; text-transform: uppercase;
+    }
+
     @keyframes pulseOrange { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.03); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
     @keyframes slideInRight { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   </style>
@@ -464,6 +471,25 @@ document.addEventListener('keypress', (e) => {
     }
   }
 
+  /* NEW DND LOGIC */
+  function dndJob(id, existingNotes) {
+    const reason = prompt("Reason for DND:");
+    if (reason === null) return; // Cancelled
+    
+    if (!reason.trim()) {
+      alert("Please provide a reason.");
+      return;
+    }
+
+    const updatedNotes = existingNotes ? `${existingNotes} | DND: ${reason}` : `DND: ${reason}`;
+    
+    db.ref("pickups").child(id).update({ 
+      assigned_to: "",
+      status: "pending",
+      other_info: updatedNotes
+    }).catch(err => alert("Error processing DND: " + err.message));
+  }
+
   function getNavUrl(addr, city) {
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}&travelmode=driving`;
   }
@@ -680,6 +706,7 @@ document.addEventListener('keypress', (e) => {
           <div class="details-box">
             <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
             <div><span style="color:var(--accent)">NOTES:</span> <span class="${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
+            <button class="dnd-btn" onclick="dndJob('${id}', '${p.other_info ? p.other_info.replace(/'/g, "\\'") : ""}')">DND</button>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
