@@ -674,7 +674,7 @@ document.addEventListener('keypress', (e) => {
       fieldSnapshots[id] = { ...currentFields };
 
       const changedFields = pendingAlerts[id] || [];
-      const needsAlert = changedFields.length > 0 && !acked;
+      const needsAlert = changedFields.length > 0 && !sessionStorage.getItem(`ack_update_${id}`);
       const internalChange = changedFields.some(f => ['contact', 'po', 'notes'].includes(f));
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
