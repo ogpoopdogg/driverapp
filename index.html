@@ -521,6 +521,23 @@ document.addEventListener('keypress', (e) => {
       .catch(err => alert("Save failed: " + err.message));
   }
 
+  function enterDriverNoteEdit(id, currentNotes) {
+    if (event) event.stopPropagation();
+    const container = document.getElementById(`driver-note-display-${id}`);
+    const safeNotes = currentNotes.replace(/\\'/g, "'");
+    container.innerHTML = `
+      <textarea id="driver-edit-input-${id}" class="edit-note-input" onclick="event.stopPropagation()">${safeNotes}</textarea>
+      <button class="save-note-btn" onclick="event.stopPropagation(); saveDriverNote('${id}')">SAVE</button>
+    `;
+  }
+
+  function saveDriverNote(id) {
+    const newText = document.getElementById(`driver-edit-input-${id}`).value;
+    const taggedNote = `Driver Note (${currentDriver}): ${newText}`;
+    db.ref("pickups").child(id).update({ other_info: taggedNote })
+      .catch(err => alert("Save failed: " + err.message));
+  }
+
   function getNavUrl(addr, city) {
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr + ', ' + city)}&travelmode=driving`;
   }
@@ -748,7 +765,8 @@ document.addEventListener('keypress', (e) => {
           </div>
           <div class="details-box">
             <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
-            <div><span style="color:var(--accent)">NOTES:</span> <span id="note-display-${id}" class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}" onclick="enterNoteEdit('${id}', '${escapedNotes}')">${p.other_info || 'None'}</span></div>
+            <div><span style="color:var(--accent)">NOTES:</span> <span id="note-display-${id}" class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
+            <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #333;"><span style="color:var(--accent)">DRIVER NOTES:</span> <span id="driver-note-display-${id}" style="color:#fff; cursor:pointer; text-decoration:underline;" onclick="enterDriverNoteEdit('${id}', '')">Click to add...</span></div>
             <button class="dnd-btn" onclick="dndJob('${id}', '${escapedNotes}')">DND</button>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
