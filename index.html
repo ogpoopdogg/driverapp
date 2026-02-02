@@ -505,11 +505,12 @@ document.addEventListener('keypress', (e) => {
 
   /* EDITABLE NOTES LOGIC */
   function enterNoteEdit(id, currentNotes) {
+    if (event) event.stopPropagation();
     const container = document.getElementById(`note-display-${id}`);
     const safeNotes = currentNotes.replace(/\\'/g, "'");
     container.innerHTML = `
-      <textarea id="edit-input-${id}" class="edit-note-input">${safeNotes}</textarea>
-      <button class="save-note-btn" onclick="saveNoteEdit('${id}')">SAVE</button>
+      <textarea id="edit-input-${id}" class="edit-note-input" onclick="event.stopPropagation()">${safeNotes}</textarea>
+      <button class="save-note-btn" onclick="event.stopPropagation(); saveNoteEdit('${id}')">SAVE</button>
     `;
   }
 
