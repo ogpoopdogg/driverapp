@@ -537,7 +537,7 @@
       } catch (err) {
         console.error("Routing Error:", err);
         const fallback = pendingJobs.map(p => encodeURIComponent(`${p.pickup_location}, ${p.city || ''}`)).join('/');
-        window.open(`https://www.google.com/maps/dir/${fallback}`, '_blank');
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${fallback}`, '_blank');
       } finally {
         btn.innerText = oldText;
       }
