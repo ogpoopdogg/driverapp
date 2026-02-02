@@ -406,39 +406,21 @@ function attemptLogin() {
     return;
   }
 
-  // This part connects to your Firebase 'driver_secrets' folder
+  // Connects to your Firebase 'driver_secrets' folder
   db.ref(`driver_secrets/${nameInput}`).once('value', snapshot => {
     const dbPin = snapshot.val();
 
-    // This compares your database PIN to what you typed
+    // Compares database PIN to what you typed
     if (dbPin && dbPin.toString() === pinInput.toString()) {
       localStorage.setItem('ec_driver_name', nameInput);
       location.reload();
     } else {
-      alert("Invalid Name or PIN. Check your Firebase boxes.");
+      alert("Invalid Name or PIN. Check your Firebase data.");
     }
-  }).catch(err => {
+ }).catch(err => {
     alert("Database error. Make sure your Rules are Published.");
   });
-} 
-
-    // This looks into your database instead of the code list
-    db.ref(`driver_secrets/${nameInput}`).once('value', snapshot => {
-      const dbPin = snapshot.val();
-
-      if (dbPin && dbPin === pinInput) {
-        localStorage.setItem('ec_driver_name', nameInput);
-        location.reload();
-      } else {
-        alert("Invalid Name or PIN");
-      }
-    }).catch(err => {
-      console.error("Login error:", err);
-      alert("Check your connection.");
-    });
-  }
-
-  document.addEventListener('keypress', (e) => {
+}}  document.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
         attemptLogin();
     }
