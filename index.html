@@ -240,6 +240,15 @@
       font-size: 16px; cursor: pointer; text-transform: uppercase;
     }
 
+    /* DRIVER NOTE BUTTON STYLING */
+    .driver-note-btn {
+      width: 100%; margin-top: 10px; padding: 12px; background: transparent; 
+      color: var(--accent); border: 2px solid var(--accent); 
+      border-radius: 6px; font-weight: 900; font-size: 16px; cursor: pointer; 
+      text-transform: uppercase; transition: 0.3s;
+    }
+    .driver-note-btn:active { background: var(--accent); color: #000; }
+
     /* EDITED NOTES STYLE */
     .notes-edited { color: var(--queue-orange) !important; font-style: italic; }
     .edit-note-input { width: 100%; background: #222; color: #fff; border: 1px solid var(--accent); border-radius: 4px; padding: 5px; font-family: inherit; margin-top: 5px; }
@@ -770,7 +779,7 @@ document.addEventListener('keypress', (e) => {
           <div class="details-box">
             <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
             <div><span style="color:var(--accent)">NOTES:</span> <span id="note-display-${id}" class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
-            <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #333;"><span style="color:var(--accent)">DRIVER NOTES:</span> <span id="driver-note-display-${id}" style="color:#fff; cursor:pointer; text-decoration:underline;" onclick="enterDriverNoteEdit('${id}', '')">Click to add...</span></div>
+            <div id="driver-note-display-${id}"><button class="driver-note-btn" onclick="enterDriverNoteEdit('${id}', '')">DRIVER NOTES</button></div>
             <button class="dnd-btn" onclick="dndJob('${id}', '${escapedNotes}')">DND</button>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
