@@ -700,7 +700,7 @@ document.addEventListener('keypress', (e) => {
       item.innerHTML = `
         <span class="history-contact" style="font-size:15px; margin-bottom:1px;">${contactName}</span>
         <div style="font-weight:bold; font-size:12px; line-height:1.1;">${shortAddr}</div>
-        <span class="history-package" style="${isHeavy ? 'font-size:12px; text-shadow:0 0 5px rgba(255, 255, 255, 0.4); animation: field-pulse 2s infinite alternate; display:inline-block;' : ''}">${p.package_type || ''}</span>
+        <span class="history-package" style="${p.package_type === 'Pallet' ? 'color:#00ffff; font-size:13px; ' : ''}${isHeavy && p.package_type !== 'Pallet' ? 'font-size:12px; ' : ''}${isHeavy ? 'text-shadow:0 0 5px rgba(255, 255, 255, 0.4); animation: field-pulse 2s infinite alternate; display:inline-block;' : ''}">${p.package_type || ''}</span>
       `;
 
       if (p.status === 'completed') {
@@ -752,7 +752,7 @@ document.addEventListener('keypress', (e) => {
                 <div class="tech-info">
                    <span class="${needsAlert && changedFields.includes('qty') ? 'field-highlight' : ''}">${p.quantity || "1"}</span>
                    <span class="dim-x"> / </span>
-                   <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}">${p.package_type}</span>
+                   <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}" ${p.package_type === 'Pallet' ? 'style="color:#00ffff; font-size:20px;"' : ''}>${p.package_type}</span>
                 </div>
               </div>
               ${p.additional_packages ? `
