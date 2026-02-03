@@ -650,6 +650,7 @@ document.addEventListener('keypress', (e) => {
           addr: p.pickup_location,
           dest: p.destination,
           contact: p.name,
+          dropName: p.delivery_name,
           po: p.po_number,
           notes: p.other_info,
           type: p.package_type,
@@ -675,7 +676,7 @@ document.addEventListener('keypress', (e) => {
 
       const changedFields = pendingAlerts[id] || [];
       const needsAlert = changedFields.length > 0 && !sessionStorage.getItem(`ack_update_${id}`);
-      const internalChange = changedFields.some(f => ['contact', 'po', 'notes'].includes(f));
+      const internalChange = changedFields.some(f => ['contact', 'dropName', 'po', 'notes'].includes(f));
 
       const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
       const contactName = p.name || 'No Name';
@@ -739,7 +740,9 @@ document.addEventListener('keypress', (e) => {
               <a href="${navUrl}" target="_blank" class="nav-link">
                 <div class="pickup-value ${needsAlert && changedFields.includes('addr') ? 'field-highlight' : ''}">${p.pickup_location}</div>
               </a>
-              <div class="card-label" style="margin-top:8px;">Drop</div>
+              <div class="card-label" style="margin-top:8px;">Drop Contact</div>
+              <div class="tech-info ${needsAlert && changedFields.includes('dropName') ? 'field-highlight' : ''}" style="margin-bottom:6px; color: #ffffff; font-size:16px;">${p.delivery_name || 'N/A'}</div>
+              <div class="card-label">Drop Address</div>
               <div class="drop-value ${needsAlert && changedFields.includes('dest') ? 'field-highlight' : ''}">${p.destination}</div>
             </div>
             <div class="specs-side">
