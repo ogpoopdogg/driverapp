@@ -696,11 +696,11 @@ document.addEventListener('keypress', (e) => {
       
       if(needsAlert) item.classList.add('has-update');
 
-      const isSkid = p.package_type === 'Skid';
+      const isHeavy = p.package_type === 'Skid' || p.package_type === 'Pallet';
       item.innerHTML = `
-        <span class="history-contact" style="font-size:13px;">${contactName}</span>
-        <strong>${shortAddr}</strong>
-        <span class="history-package" ${isSkid ? 'style="font-size:12px; text-shadow:0 0 4px rgba(255,255,255,0.3);"' : ''}>${p.package_type || ''}</span>
+        <span class="history-contact" style="font-size:15px; margin-bottom:1px;">${contactName}</span>
+        <div style="font-weight:bold; font-size:12px; line-height:1.1;">${shortAddr}</div>
+        <span class="history-package" style="${isHeavy ? 'font-size:12px; text-shadow:0 0 5px rgba(255, 255, 255, 0.4); animation: field-pulse 2s infinite alternate; display:inline-block;' : ''}">${p.package_type || ''}</span>
       `;
 
       if (p.status === 'completed') {
