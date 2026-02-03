@@ -696,10 +696,11 @@ document.addEventListener('keypress', (e) => {
       
       if(needsAlert) item.classList.add('has-update');
 
+      const isSkid = p.package_type === 'Skid';
       item.innerHTML = `
+        <span class="history-contact" style="font-size:13px;">${contactName}</span>
         <strong>${shortAddr}</strong>
-        <span class="history-contact">${contactName}</span>
-        <span class="history-package">${p.package_type || ''}</span>
+        <span class="history-package" ${isSkid ? 'style="font-size:12px; text-shadow:0 0 4px rgba(255,255,255,0.3);"' : ''}>${p.package_type || ''}</span>
       `;
 
       if (p.status === 'completed') {
