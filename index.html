@@ -211,7 +211,7 @@
     .card-label { color: var(--accent); font-size: 11px; font-weight: 900; text-transform: uppercase; }
     .nav-link { text-decoration: none; color: inherit; }
     .city-tag { display: inline-block; font-size: 16px; background: #333; color: #fff; padding: 3px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid #555; margin-bottom: 6px; }
-    .pickup-value { font-size: 24px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
+    .pickup-value { font-size: 20px; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
     .drop-value { font-size: 18px; font-800; line-height: 1.1; color: #bbb; text-transform: uppercase; }
     .tech-info { font-size: 15px; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1; }
     .dim-x { color: #888; font-weight: 400; }
@@ -735,7 +735,7 @@ document.addEventListener('keypress', (e) => {
             <div class="address-side">
               <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
               <div class="card-label" style="margin-top:2px;">Contact</div>
-              <div class="tech-info ${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}" style="margin-bottom:6px; color: #ffffff; font-size:16px;">${p.name || 'N/A'}</div>
+              <div class="tech-info ${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}" style="margin-bottom:2px; color: var(--queue-orange); font-size:24px; line-height:1.1;">${p.name || 'N/A'}</div>
               <div class="card-label">Pickup</div>
               <a href="${navUrl}" target="_blank" class="nav-link">
                 <div class="pickup-value ${needsAlert && changedFields.includes('addr') ? 'field-highlight' : ''}">${p.pickup_location}</div>
