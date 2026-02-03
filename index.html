@@ -531,7 +531,7 @@ document.addEventListener('keypress', (e) => {
     const safeNotes = currentNotes.replace(/\\'/g, "'");
     container.innerHTML = `
       <textarea id="driver-edit-input-${id}" class="edit-note-input" onclick="event.stopPropagation()">${safeNotes}</textarea>
-      <button class="save-note-btn" onclick="event.stopPropagation(); saveDriverNote('${id}')">SAVE</button>
+      <button class="save-note-btn" style="width: 50%;" onclick="event.stopPropagation(); saveDriverNote('${id}')">SEND</button>
     `;
   }
 
