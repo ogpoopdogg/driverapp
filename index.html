@@ -78,16 +78,18 @@
     }
 
     .stop-badge {
-      background: rgba(255, 152, 0, 0.2);
-      color: var(--queue-orange);
-      border: 1px solid var(--queue-orange);
-      padding: 2px 10px;
-      border-radius: 20px;
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--update-blue);
+      border: 1px solid var(--update-blue);
+      padding: 4px 12px;
+      border-radius: 4px;
       font-size: 14px;
       margin-left: 10px;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: 0.5px;
-      animation: counter-glow 2s infinite alternate ease-in-out;
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+      text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+      animation: pro-pulse-blue 3s infinite ease-in-out;
       display: inline-block;
       vertical-align: middle;
     }
@@ -105,9 +107,10 @@
       vertical-align: middle;
     }
 
-    @keyframes counter-glow {
-      from { box-shadow: 0 0 2px var(--queue-orange); border-color: rgba(255,152,0,0.5); }
-      to { box-shadow: 0 0 10px var(--queue-orange); border-color: var(--queue-orange); }
+    @keyframes pro-pulse-blue {
+      0% { box-shadow: 0 0 5px rgba(0, 212, 255, 0.3); border-color: rgba(0, 212, 255, 0.4); background: rgba(0, 212, 255, 0.05); }
+      50% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.6); border-color: var(--update-blue); background: rgba(0, 212, 255, 0.15); }
+      100% { box-shadow: 0 0 5px rgba(0, 212, 255, 0.3); border-color: rgba(0, 212, 255, 0.4); background: rgba(0, 212, 255, 0.05); }
     }
 
     #login-overlay {
@@ -743,7 +746,10 @@ document.addEventListener('keypress', (e) => {
           </div>
           <div class="card-layout">
             <div class="address-side">
-              <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag">${p.city || '??'}</div></a>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                  <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag" style="margin:0;">${p.city || '??'}</div></a>
+                  <div style="font-size:16px; background:#333; color:#fff; padding:3px 10px; border-radius:4px; font-weight:900; text-transform:uppercase; border:1px solid #555;">PO: <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}" style="color:var(--accent);">${p.po_number || '-'}</span></div>
+              </div>
               <div class="card-label" style="margin-top:2px;">Contact</div>
               <div class="tech-info ${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}" style="margin-bottom:2px; color: var(--queue-orange); font-size:24px; line-height:1.1;">${p.name || 'N/A'}</div>
               <div class="card-label">Pickup</div>
@@ -777,7 +783,6 @@ document.addEventListener('keypress', (e) => {
             <div class="job-date-stamp">${formatDateShort(p.timestamp)}</div>
           </div>
           <div class="details-box">
-            <div><span style="color:var(--accent)">PO:</span> <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}">${p.po_number || '-'}</span></div>
             <div><span style="color:var(--accent)">NOTES:</span> <span id="note-display-${id}" class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
             <div id="driver-note-display-${id}"><button class="driver-note-btn" onclick="enterDriverNoteEdit('${id}', '')">DRIVER NOTES</button></div>
             <button class="dnd-btn" onclick="dndJob('${id}', '${escapedNotes}')">DND</button>
