@@ -95,16 +95,24 @@
     }
 
     .new-stops-badge {
-      background: rgba(76, 175, 80, 0.2);
-      color: var(--active-green);
-      border: 1px solid var(--active-green);
-      padding: 2px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      margin-left: 5px;
-      font-weight: 700;
+      background: #ff0000;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 16px;
+      margin-left: 15px;
+      font-weight: 900;
       display: none;
       vertical-align: middle;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+      animation: explosion 1s infinite;
+    }
+
+    @keyframes explosion {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+      70% { transform: scale(1.2); box-shadow: 0 0 20px 20px rgba(255, 0, 0, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
     }
 
     @keyframes pro-pulse-blue {
@@ -210,7 +218,9 @@
     .card-exit-success { transform: scale(0.9) translateX(-20px); opacity: 0; filter: blur(5px); pointer-events: none; transition: 0.5s ease; }
     
     .done-slash {
-      border-left-color: #888 !important;
+      border-left-color: #555 !important;
+      opacity: 0.5;
+      filter: grayscale(1);
     }
 
     .card-date-badge { font-size: 10px; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; letter-spacing: 0.5px; }
@@ -722,7 +732,7 @@ document.addEventListener('keypress', (e) => {
       item.innerHTML = `
         <span class="history-contact" style="font-size:12px; margin-bottom:1px;">${contactName}</span>
         <div style="font-weight:700; font-size:11px; line-height:1.2; color:#ccc;">${shortAddr}</div>
-        <span class="history-package" style="${(p.package_type === 'Pallet' || p.package_type === 'Skid') ? 'color:#00ffff; font-size:11px; ' : ''}${isHeavy && p.package_type !== 'Pallet' ? 'font-size:11px; ' : ''}${isHeavy ? 'text-shadow:0 0 5px rgba(255, 255, 255, 0.4); animation: field-pulse 2s infinite alternate; display:inline-block;' : ''}">${p.package_type || ''}</span>
+        <span class="history-package" style="${isHeavy ? 'color:#00ffff; font-size:15px; text-shadow:0 0 5px rgba(0, 212, 255, 0.8); animation: field-pulse 0.8s infinite alternate; display:inline-block; font-weight:900;' : ''}">${p.package_type || ''}</span>
       `;
 
       if (p.status === 'completed') {
@@ -773,7 +783,7 @@ document.addEventListener('keypress', (e) => {
                      <div class="tech-info">
                         <span class="${needsAlert && changedFields.includes('qty') ? 'field-highlight' : ''}">${p.quantity || "1"}</span>
                         <span class="dim-x"> / </span>
-                        <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}" ${p.package_type === 'Pallet' ? 'style="color:#00ffff; font-size:18px;"' : ''}>${p.package_type}</span>
+                        <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}" style="${isHeavy ? 'color:#00ffff; font-size:24px; text-shadow: 0 0 15px #00d4ff; animation: field-pulse 0.8s infinite alternate; display:inline-block;' : ''}">${p.package_type}</span>
                      </div>
                      ${p.additional_packages ? `
                      <div class="card-label">Additional</div>
