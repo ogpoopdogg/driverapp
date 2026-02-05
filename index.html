@@ -178,7 +178,7 @@
     .section-label-pending { font-size: 13px; font-weight: 800; text-transform: uppercase; margin: 10px 0 6px 0; color: var(--queue-orange); border-bottom: 1px solid #333; animation: pulseOrange 3s infinite ease-in-out; letter-spacing: 0.5px; }
     .section-label-done { font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 15px 0 6px 0; color: var(--active-green); border-bottom: 1px solid #333; opacity: 0.8; }
     
-    .history-item { background: #181818; padding: 10px 8px; margin-bottom: 6px; border-radius: 6px; border-left: 3px solid var(--active-green); font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .history-item { background: #181818; padding: 10px 8px; margin-bottom: 6px; border-radius: 6px; border-left: 3px solid var(--active-green); font-size: 12px; cursor: pointer; overflow: hidden; white-space: normal; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
     .just-archived { animation: proArchivePop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 10; border-left-width: 6px; }
 
     @keyframes proArchivePop {
@@ -194,8 +194,8 @@
       100% { transform: scale(1); opacity: 1; }
     }
 
-    .history-contact { color: #fff; font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; font-weight: 600; }
-    .history-package { color: #777; font-size: 10px; display: block; text-transform: uppercase; font-weight: 700; margin-top: 3px; }
+    .history-contact { color: var(--queue-orange); font-size: 11px; display: block; margin-top: 2px; text-transform: uppercase; font-weight: 600; }
+    .history-package { color: #777; font-size: 12px; display: block; text-transform: uppercase; font-weight: 700; margin-top: 3px; }
 
     #live-feed { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
     .active-card { background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid #333; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
@@ -695,7 +695,7 @@ document.addEventListener('keypress', (e) => {
       const needsAlert = changedFields.length > 0 && !sessionStorage.getItem(`ack_update_${id}`);
       const internalChange = changedFields.some(f => ['contact', 'dropName', 'po', 'notes'].includes(f));
 
-      const shortAddr = p.pickup_location ? p.pickup_location.split(',')[0] : "No Address";
+      const shortAddr = p.pickup_location || "No Address";
       const contactName = p.name || 'No Name';
       const item = document.createElement("div"); 
       item.className = "history-item";
@@ -717,10 +717,11 @@ document.addEventListener('keypress', (e) => {
       item.innerHTML = `
         <span class="history-contact" style="font-size:12px; margin-bottom:1px;">${contactName}</span>
         <div style="font-weight:700; font-size:11px; line-height:1.2; color:#ccc;">${shortAddr}</div>
-        <span class="history-package" style="${p.package_type === 'Pallet' ? 'color:#00ffff; font-size:11px; ' : ''}${isHeavy && p.package_type !== 'Pallet' ? 'font-size:11px; ' : ''}${isHeavy ? 'text-shadow:0 0 5px rgba(255, 255, 255, 0.4); animation: field-pulse 2s infinite alternate; display:inline-block;' : ''}">${p.package_type || ''}</span>
+        <span class="history-package" style="${(p.package_type === 'Pallet' || p.package_type === 'Skid') ? 'color:#00ffff; font-size:11px; ' : ''}${isHeavy && p.package_type !== 'Pallet' ? 'font-size:11px; ' : ''}${isHeavy ? 'text-shadow:0 0 5px rgba(255, 255, 255, 0.4); animation: field-pulse 2s infinite alternate; display:inline-block;' : ''}">${p.package_type || ''}</span>
       `;
 
       if (p.status === 'completed') {
+        item.style.background = 'rgba(255, 152, 0, 0.05)';
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
