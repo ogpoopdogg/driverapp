@@ -208,6 +208,11 @@
 
     @keyframes softPulse { 0% { border-color: #333; } 50% { border-color: #555; } 100% { border-color: #333; } }
     .card-exit-success { transform: scale(0.9) translateX(-20px); opacity: 0; filter: blur(5px); pointer-events: none; transition: 0.5s ease; }
+    
+    .done-slash {
+      background: linear-gradient(to top right, transparent calc(50% - 1px), red, transparent calc(50% + 1px)), rgba(255, 152, 0, 0.05) !important;
+    }
+
     .card-date-badge { font-size: 10px; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; letter-spacing: 0.5px; }
     .card-layout { display: flex; justify-content: space-between; gap: 12px; }
     .address-side { flex: 1; display: flex; flex-direction: column; gap: 4px; }
@@ -539,7 +544,7 @@ document.addEventListener('keypress', (e) => {
     const safeNotes = currentNotes.replace(/\\'/g, "'");
     container.innerHTML = `
       <textarea id="driver-edit-input-${id}" class="edit-note-input" onclick="event.stopPropagation()">${safeNotes}</textarea>
-      <button class="save-note-btn" style="width: 50%;" onclick="event.stopPropagation(); saveDriverNote('${id}')">SEND</button>
+      <button class="save-note-btn" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="event.stopPropagation(); saveDriverNote('${id}')">SEND</button>
     `;
   }
 
@@ -721,7 +726,7 @@ document.addEventListener('keypress', (e) => {
       `;
 
       if (p.status === 'completed') {
-        item.style.background = 'rgba(255, 152, 0, 0.05)';
+        item.classList.add('done-slash');
         item.onclick = () => restoreToQueue(id);
         rLog.appendChild(item);
       } else {
