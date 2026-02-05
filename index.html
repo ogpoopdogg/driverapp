@@ -512,7 +512,7 @@ document.addEventListener('keypress', (e) => {
 
   /* NEW DND LOGIC */
   function dndJob(id, existingNotes) {
-    const reason = prompt("Reason for DND:");
+    const reason = prompt("Reason for DNP:");
     if (reason === null) return; // Cancelled
     
     if (!reason.trim()) {
@@ -521,13 +521,13 @@ document.addEventListener('keypress', (e) => {
     }
 
     // TAG DRIVER AND MARK AS EDITED
-    const updatedNotes = existingNotes ? `${existingNotes} | DND (${currentDriver}): ${reason}` : `DND (${currentDriver}): ${reason}`;
+    const updatedNotes = existingNotes ? `${existingNotes} | DNP (${currentDriver}): ${reason}` : `DNP (${currentDriver}): ${reason}`;
     
     db.ref("pickups").child(id).update({ 
       assigned_to: "",
       status: "pending",
       other_info: updatedNotes
-    }).catch(err => alert("Error processing DND: " + err.message));
+    }).catch(err => alert("Error processing DNP: " + err.message));
   }
 
   /* EDITABLE NOTES LOGIC */
@@ -806,7 +806,7 @@ document.addEventListener('keypress', (e) => {
           <div class="details-box">
             <div><span style="color:var(--accent)">NOTES:</span> <span id="note-display-${id}" class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
             <div id="driver-note-display-${id}"><button class="driver-note-btn" onclick="enterDriverNoteEdit('${id}', '')">DRIVER NOTES</button></div>
-            <button class="dnd-btn" onclick="dndJob('${id}', '${escapedNotes}')">DND</button>
+            <button class="dnd-btn" onclick="dndJob('${id}', '${escapedNotes}')">DNP</button>
             <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
           </div>
           <div class="card-action-row">
