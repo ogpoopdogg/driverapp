@@ -557,13 +557,10 @@ document.addEventListener('keypress', (e) => {
     if(container.innerHTML.trim() !== "") {
         container.innerHTML = "";
     } else {
-        db.ref(`pickups/${id}/other_info`).once('value', s => {
-            const currentNotes = (s.val() || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-            container.innerHTML = `
-              <textarea id="driver-edit-input-${id}" class="edit-note-input glow-yellow" onclick="event.stopPropagation()">${currentNotes}</textarea>
-              <button class="save-note-btn" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="event.stopPropagation(); saveDriverNote('${id}')">SEND</button>
-            `;
-        });
+        container.innerHTML = `
+          <textarea id="driver-edit-input-${id}" class="edit-note-input glow-yellow" onclick="event.stopPropagation()"></textarea>
+          <button class="save-note-btn" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="event.stopPropagation(); saveDriverNote('${id}')">SEND</button>
+        `;
     }
   }
 
@@ -581,7 +578,7 @@ document.addEventListener('keypress', (e) => {
   function enterPoEdit(e, id, currentVal) {
     e.stopPropagation();
     const container = document.getElementById(`po-container-${id}`);
-    const safeVal = currentVal.replace(/"/g, "&quot;");
+    const safeVal = currentVal.replace(/"/g, """);
     container.innerHTML = `
         <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center; margin-top:5px;">
           <input type="text" id="po-input-${id}" class="login-input glow-yellow" style="width: 120px; padding: 6px; margin: 0; font-size:13px;" value="${safeVal}" onclick="event.stopPropagation()">
@@ -877,7 +874,7 @@ document.addEventListener('keypress', (e) => {
           </div>
           
           <div class="card-action-row">
-            <button class="info-btn ${internalChange && needsAlert ? 'info-btn-animate' : ''}" onclick="dndJob('${id}', '${escapedNotes}')">DNP</button>
+            <button class="info-btn" onclick="dndJob('${id}', '${escapedNotes}')">DNP</button>
             <button class="done-btn" onclick="markDone('${id}')">DONE</button>
           </div>
         `;
