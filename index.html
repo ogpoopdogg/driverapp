@@ -578,7 +578,7 @@ document.addEventListener('keypress', (e) => {
   function enterPoEdit(e, id, currentVal) {
     e.stopPropagation();
     const container = document.getElementById(`po-container-${id}`);
-    const safeVal = currentVal.replace(/"/g, """);
+    const safeVal = currentVal.replace(/"/g, "");
     container.innerHTML = `
         <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center; margin-top:5px;">
           <input type="text" id="po-input-${id}" class="login-input glow-yellow" style="width: 120px; padding: 6px; margin: 0; font-size:13px;" value="${safeVal}" onclick="event.stopPropagation()">
