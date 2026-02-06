@@ -206,7 +206,7 @@
     .history-package { color: #777; font-size: 12px; display: block; text-transform: uppercase; font-weight: 700; margin-top: 3px; }
 
     #live-feed { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-    .active-card { background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid #333; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .active-card { background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid #333; width: 100%; display: flex; flex-direction: column; animation: slideInRight 0.4s both; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: relative; }
 
     .new-job-highlight {
       border: 2px solid var(--active-green) !important;
@@ -773,15 +773,30 @@ document.addEventListener('keypress', (e) => {
         const isEdited = (p.other_info || "").includes("(Edited by") || (p.other_info || "").includes("DND (") || (p.other_info || "").includes("Driver Note (");
 
         card.id = `card-${id}`;
+        
+        const notesDisplay = (p.other_info && p.other_info.trim() !== "") ? 
+          `<div class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}" style="text-align:center; width:100%; margin-top:10px; color:#ddd; font-size:14px; word-wrap:break-word; font-style:italic;">${p.other_info}</div>` 
+          : '';
+
+        const poDisplay = (p.po_number && p.po_number.trim() !== "") ?
+          `<div style="text-align:right; margin-top:5px; margin-bottom:5px; font-weight:bold; color:#aaa; font-size:13px;">PO: <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}" style="color:var(--accent);">${p.po_number}</span></div>`
+          : '';
+
         card.innerHTML = `
           <div class="card-date-badge">
             ${needsAlert ? `<span id="badge-${id}" class="update-badge">NEW INFO</span>` : ''}
           </div>
+          
+          <div style="position: absolute; top: 12px; right: 12px; cursor: pointer; z-index: 5;" onclick="enterDriverNoteEdit('${id}', '')">
+            <svg viewBox="0 0 24 24" style="width: 26px; height: 26px; fill: var(--accent); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
+              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+            </svg>
+          </div>
+
           <div class="card-layout">
             <div class="address-side">
               <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                   <a href="${navUrl}" target="_blank" class="nav-link"><div class="city-tag" style="margin:0;">${p.city || '??'}</div></a>
-                  <div style="font-size:12px; background:#2a2a2a; color:#fff; padding:4px 10px; border-radius:20px; font-weight:700; text-transform:uppercase; border:1px solid #444; letter-spacing:0.5px;">PO: <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}" style="color:var(--accent);">${p.po_number || '-'}</span></div>
               </div>
               <div class="card-label" style="margin-top:2px;">Contact</div>
               <div class="tech-info ${needsAlert && changedFields.includes('contact') ? 'field-highlight' : ''}" style="margin-bottom:2px; color: var(--queue-orange); font-size:22px; line-height:1.1;">${p.name || 'N/A'}</div>
@@ -811,18 +826,19 @@ document.addEventListener('keypress', (e) => {
               </div>
             </div>
           </div>
+          
+          ${notesDisplay}
+          ${poDisplay}
+          
+          <div id="driver-note-display-${id}"></div>
+
           <div class="time-stack">
             <div class="job-time-stamp">${formatTime12(p.timestamp)}</div>
             <div class="job-date-stamp">${formatDateShort(p.timestamp)}</div>
           </div>
-          <div class="details-box">
-            <div><span style="color:var(--accent)">NOTES:</span> <span id="note-display-${id}" class="${isEdited ? 'notes-edited' : ''} ${needsAlert && changedFields.includes('notes') ? 'field-highlight' : ''}">${p.other_info || 'None'}</span></div>
-            <div id="driver-note-display-${id}"><button class="driver-note-btn" onclick="enterDriverNoteEdit('${id}', '')">DRIVER NOTES</button></div>
-            <button class="dnd-btn" onclick="dndJob('${id}', '${escapedNotes}')">DNP</button>
-            <button class="decline-btn" onclick="declineJob('${id}')">DECLINE</button>
-          </div>
+          
           <div class="card-action-row">
-            <button class="info-btn ${internalChange && needsAlert ? 'info-btn-animate' : ''}" onclick="toggleDetails(this, '${id}')">INFO</button>
+            <button class="info-btn ${internalChange && needsAlert ? 'info-btn-animate' : ''}" onclick="dndJob('${id}', '${escapedNotes}')">DNP</button>
             <button class="done-btn" onclick="markDone('${id}')">DONE</button>
           </div>
         `;
