@@ -745,6 +745,18 @@ document.addEventListener('keypress', (e) => {
         qLog.appendChild(item);
 
         const dims = p.dimensions || {length: "-", width: "-", height: "-"};
+
+        let dimsHtml = "";
+        const dL = String(dims.length);
+        if(dL.includes('|')) {
+          const splitL = dL.split('|');
+          const splitW = String(dims.width).split('|');
+          const splitH = String(dims.height).split('|');
+          dimsHtml = splitL.map((l, i) => `<div>${l}<span class="dim-x">x</span>${splitW[i]||''}<span class="dim-x">x</span>${splitH[i]||''}</div>`).join('');
+        } else {
+          dimsHtml = `${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}`;
+        }
+
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
         card.className = "active-card";
@@ -789,7 +801,7 @@ document.addEventListener('keypress', (e) => {
                      <div class="card-label">Additional</div>
                      <div class="tech-info ${needsAlert && changedFields.includes('extra') ? 'field-highlight' : ''}">${p.additional_packages}</div>` : ''}
                      <div class="card-label">Size</div>
-                     <div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}</div>
+                     <div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dimsHtml}</div>
                   </div>
               </div>
               <div class="card-label" style="margin-top:8px;">Drop Contact</div>
