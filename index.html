@@ -276,6 +276,7 @@
     .notes-edited { color: var(--queue-orange) !important; font-style: italic; }
     .edit-note-input { width: 100%; background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 8px; font-family: inherit; margin-top: 5px; font-size: 14px; }
     .save-note-btn { background: var(--active-green); color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; margin-top: 8px; cursor: pointer; font-weight: bold; }
+    .glow-yellow { border: 1px solid var(--accent) !important; box-shadow: 0 0 10px var(--accent) !important; outline: none; }
 
     @keyframes pulseOrange { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
     @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -329,6 +330,7 @@
   let observer = null;
   let fieldSnapshots = {}; 
   let pendingAlerts = {};
+  const selfEdited = new Set();
 
   let lastGpsUpdate = 0;
   const gpsInterval = 60000; 
@@ -544,18 +546,25 @@ document.addEventListener('keypress', (e) => {
   function saveNoteEdit(id) {
     const newText = document.getElementById(`edit-input-${id}`).value;
     const taggedNote = `${newText} (Edited by ${currentDriver})`;
+    selfEdited.add(`${id}_notes`);
     db.ref("pickups").child(id).update({ other_info: taggedNote })
       .catch(err => alert("Save failed: " + err.message));
   }
 
-  function enterDriverNoteEdit(id, currentNotes) {
-    if (event) event.stopPropagation();
+  function toggleDriverNoteEdit(e, id) {
+    e.stopPropagation();
     const container = document.getElementById(`driver-note-display-${id}`);
-    const safeNotes = currentNotes.replace(/\\'/g, "'");
-    container.innerHTML = `
-      <textarea id="driver-edit-input-${id}" class="edit-note-input" onclick="event.stopPropagation()">${safeNotes}</textarea>
-      <button class="save-note-btn" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="event.stopPropagation(); saveDriverNote('${id}')">SEND</button>
-    `;
+    if(container.innerHTML.trim() !== "") {
+        container.innerHTML = "";
+    } else {
+        db.ref(`pickups/${id}/other_info`).once('value', s => {
+            const currentNotes = (s.val() || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            container.innerHTML = `
+              <textarea id="driver-edit-input-${id}" class="edit-note-input glow-yellow" onclick="event.stopPropagation()">${currentNotes}</textarea>
+              <button class="save-note-btn" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="event.stopPropagation(); saveDriverNote('${id}')">SEND</button>
+            `;
+        });
+    }
   }
 
   function saveDriverNote(id) {
@@ -563,9 +572,35 @@ document.addEventListener('keypress', (e) => {
     db.ref("pickups").child(id).child("other_info").once("value", s => {
       const existing = s.val() || "";
       const taggedNote = existing ? `${existing} | Driver Note (${currentDriver}): ${newText}` : `Driver Note (${currentDriver}): ${newText}`;
+      selfEdited.add(`${id}_notes`);
       db.ref("pickups").child(id).update({ other_info: taggedNote })
         .catch(err => alert("Save failed: " + err.message));
     });
+  }
+
+  function enterPoEdit(e, id, currentVal) {
+    e.stopPropagation();
+    const container = document.getElementById(`po-container-${id}`);
+    const safeVal = currentVal.replace(/"/g, "&quot;");
+    container.innerHTML = `
+        <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center; margin-top:5px;">
+          <input type="text" id="po-input-${id}" class="login-input glow-yellow" style="width: 120px; padding: 6px; margin: 0; font-size:13px;" value="${safeVal}" onclick="event.stopPropagation()">
+          <button class="save-note-btn" style="margin:0;" onclick="savePoEdit(event, '${id}')">SAVE</button>
+          <button class="save-note-btn" style="background:#555; margin:0;" onclick="cancelPoEdit(event, '${id}', '${safeVal}')">X</button>
+        </div>
+    `;
+  }
+
+  function savePoEdit(e, id) {
+    e.stopPropagation();
+    const val = document.getElementById(`po-input-${id}`).value;
+    selfEdited.add(`${id}_po`);
+    db.ref("pickups").child(id).update({ po_number: val });
+  }
+
+  function cancelPoEdit(e, id, original) {
+    e.stopPropagation();
+    document.getElementById(`po-container-${id}`).innerHTML = `PO: <span style="color:var(--accent);">${original}</span>`;
   }
 
   function getNavUrl(addr, city) {
@@ -698,9 +733,13 @@ document.addEventListener('keypress', (e) => {
       if (fieldSnapshots[id]) {
           Object.keys(currentFields).forEach(key => {
               if (fieldSnapshots[id][key] !== currentFields[key]) {
-                  if (!pendingAlerts[id]) pendingAlerts[id] = [];
-                  if (!pendingAlerts[id].includes(key)) pendingAlerts[id].push(key);
-                  sessionStorage.removeItem(`ack_update_${id}`);
+                  if (selfEdited.has(`${id}_${key}`)) {
+                      selfEdited.delete(`${id}_${key}`);
+                  } else {
+                      if (!pendingAlerts[id]) pendingAlerts[id] = [];
+                      if (!pendingAlerts[id].includes(key)) pendingAlerts[id].push(key);
+                      sessionStorage.removeItem(`ack_update_${id}`);
+                  }
               }
           });
       }
@@ -779,7 +818,7 @@ document.addEventListener('keypress', (e) => {
           : '';
 
         const poDisplay = (p.po_number && p.po_number.trim() !== "") ?
-          `<div style="text-align:right; margin-top:5px; margin-bottom:5px; font-weight:bold; color:#aaa; font-size:13px;">PO: <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}" style="color:var(--accent);">${p.po_number}</span></div>`
+          `<div id="po-container-${id}" onclick="enterPoEdit(event, '${id}', '${(p.po_number||"").replace(/'/g, "\\'")}')" style="text-align:right; margin-top:5px; margin-bottom:5px; font-weight:bold; color:#aaa; font-size:13px; cursor:pointer;">PO: <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}" style="color:var(--accent);">${p.po_number}</span></div>`
           : '';
 
         card.innerHTML = `
@@ -787,7 +826,7 @@ document.addEventListener('keypress', (e) => {
             ${needsAlert ? `<span id="badge-${id}" class="update-badge">NEW INFO</span>` : ''}
           </div>
           
-          <div style="position: absolute; top: 12px; right: 12px; cursor: pointer; z-index: 5;" onclick="enterDriverNoteEdit('${id}', '')">
+          <div style="position: absolute; top: 12px; right: 12px; cursor: pointer; z-index: 5;" onclick="toggleDriverNoteEdit(event, '${id}')">
             <svg viewBox="0 0 24 24" style="width: 26px; height: 26px; fill: var(--accent); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
               <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
             </svg>
