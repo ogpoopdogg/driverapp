@@ -366,7 +366,7 @@
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('header-name').innerHTML = `
       <img src="icon-512.png" class="header-logo">
-      ${currentDriver}
+      <span style="font-size: 24px; color: #39FF14; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${currentDriver}</span>
       <span id="stop-counter" class="stop-badge">0 STOPS</span>
       <span id="new-stops-badge" class="new-stops-badge">0 NEW</span>
     `;
@@ -797,11 +797,11 @@ document.addEventListener('keypress', (e) => {
                         <span class="dim-x"> / </span>
                         <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}" style="${isHeavy ? 'color:#00ffff; font-size:24px; text-shadow: 0 0 15px #00d4ff; animation: field-pulse 0.8s infinite alternate; display:inline-block;' : ''}">${p.package_type}</span>
                      </div>
+                     <div class="card-label">Size</div>
+                     <div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dimsHtml}</div>
                      ${p.additional_packages ? `
                      <div class="card-label">Additional</div>
                      <div class="tech-info ${needsAlert && changedFields.includes('extra') ? 'field-highlight' : ''}">${p.additional_packages}</div>` : ''}
-                     <div class="card-label">Size</div>
-                     <div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dimsHtml}</div>
                   </div>
               </div>
               <div class="card-label" style="margin-top:8px;">Drop Contact</div>
