@@ -717,12 +717,9 @@ document.addEventListener('keypress', (e) => {
           dropName: p.delivery_name,
           po: p.po_number,
           notes: p.other_info,
-          type: p.package_type,
-          qty: p.quantity,
-          extra: p.additional_packages,
+          details: p.package_details,
           status: p.status,
-          assigned: p.assigned_to,
-          size: `${p.dimensions?.length}x${p.dimensions?.width}x${p.dimensions?.height}`
+          assigned: p.assigned_to
       };
 
       const acked = sessionStorage.getItem(`ack_update_${id}`);
@@ -764,11 +761,10 @@ document.addEventListener('keypress', (e) => {
       
       if(needsAlert) item.classList.add('has-update');
 
-      const isHeavy = p.package_type === 'Skid' || p.package_type === 'Pallet';
       item.innerHTML = `
         <span class="history-contact" style="font-size:12px; margin-bottom:1px;">${contactName}</span>
         <div style="font-weight:700; font-size:11px; line-height:1.2; color:#ccc;">${shortAddr}</div>
-        <span class="history-package" style="${isHeavy ? 'color:#00ffff; font-size:15px; text-shadow:0 0 5px rgba(0, 212, 255, 0.8); animation: field-pulse 0.8s infinite alternate; display:inline-block; font-weight:900;' : ''}">${p.package_type || ''}</span>
+        <span class="history-package">${p.package_details || ''}</span>
       `;
 
       if (p.status === 'completed') {
@@ -779,19 +775,6 @@ document.addEventListener('keypress', (e) => {
         pendingCount++;
         item.onclick = () => scrollToCard(id); 
         qLog.appendChild(item);
-
-        const dims = p.dimensions || {length: "-", width: "-", height: "-"};
-
-        let dimsHtml = "";
-        const dL = String(dims.length);
-        if(dL.includes('|')) {
-          const splitL = dL.split('|');
-          const splitW = String(dims.width).split('|');
-          const splitH = String(dims.height).split('|');
-          dimsHtml = splitL.map((l, i) => `<div>${l}<span class="dim-x">x</span>${splitW[i]||''}<span class="dim-x">x</span>${splitH[i]||''}</div>`).join('');
-        } else {
-          dimsHtml = `${dims.length} <span class="dim-x">x</span> ${dims.width} <span class="dim-x">x</span> ${dims.height}`;
-        }
 
         const navUrl = getNavUrl(p.pickup_location, p.city || '');
         const card = document.createElement("div"); 
@@ -842,17 +825,8 @@ document.addEventListener('keypress', (e) => {
                     <div class="pickup-value ${needsAlert && changedFields.includes('addr') ? 'field-highlight' : ''}">${p.pickup_location}</div>
                   </a>
                   <div style="text-align:right; min-width:80px;">
-                     <div class="card-label">Qty / Type</div>
-                     <div class="tech-info">
-                        <span class="${needsAlert && changedFields.includes('qty') ? 'field-highlight' : ''}">${p.quantity || "1"}</span>
-                        <span class="dim-x"> / </span>
-                        <span class="${needsAlert && changedFields.includes('type') ? 'field-highlight' : ''}" style="${isHeavy ? 'color:#00ffff; font-size:24px; text-shadow: 0 0 15px #00d4ff; animation: field-pulse 0.8s infinite alternate; display:inline-block;' : ''}">${p.package_type}</span>
-                     </div>
-                     <div class="card-label">Size</div>
-                     <div class="tech-info ${needsAlert && changedFields.includes('size') ? 'field-highlight' : ''}">${dimsHtml}</div>
-                     ${p.additional_packages ? `
-                     <div class="card-label">Additional</div>
-                     <div class="tech-info ${needsAlert && changedFields.includes('extra') ? 'field-highlight' : ''}">${p.additional_packages}</div>` : ''}
+                     <div class="card-label">Packages/Items/Dims</div>
+                     <div class="tech-info ${needsAlert && changedFields.includes('details') ? 'field-highlight' : ''}">${p.package_details || "-"}</div>
                   </div>
               </div>
               <div class="card-label" style="margin-top:8px;">Drop Contact</div>
