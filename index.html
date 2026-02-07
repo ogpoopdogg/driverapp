@@ -63,6 +63,18 @@
       to { opacity: 1; }
     }
 
+    /* HEAVY ITEM ANIMATION */
+    .heavy-pulse {
+      text-transform: uppercase !important;
+      color: #ff4d4d !important;
+      font-weight: 900 !important;
+      animation: heavy-flash 1s infinite alternate;
+    }
+    @keyframes heavy-flash {
+      from { text-shadow: 0 0 5px #ff0000; transform: scale(1); }
+      to { text-shadow: 0 0 15px #ff0000; transform: scale(1.05); }
+    }
+
     .header-logo {
       height: 28px; 
       width: auto;
@@ -710,6 +722,10 @@ document.addEventListener('keypress', (e) => {
       if (p.assigned_to !== currentDriver) return;
       if (p.status === 'completed' && (p.completed_at || 0) < startOfToday) return;
 
+      const pkgRaw = p.package_details || "";
+      const isHeavy = /skid|pallet/i.test(pkgRaw);
+      const heavyStyle = isHeavy ? " heavy-pulse" : "";
+
       const currentFields = {
           addr: p.pickup_location,
           dest: p.destination,
@@ -764,7 +780,7 @@ document.addEventListener('keypress', (e) => {
       item.innerHTML = `
         <span class="history-contact" style="font-size:12px; margin-bottom:1px;">${contactName}</span>
         <div style="font-weight:700; font-size:11px; line-height:1.2; color:#ccc;">${shortAddr}</div>
-        <span class="history-package">${p.package_details || ''}</span>
+        <span class="history-package${heavyStyle}">${p.package_details || ''}</span>
       `;
 
       if (p.status === 'completed') {
@@ -821,7 +837,7 @@ document.addEventListener('keypress', (e) => {
                     <div class="pickup-value ${needsAlert && changedFields.includes('addr') ? 'field-highlight' : ''}">${p.pickup_location}</div>
                   </a>
                   <div style="text-align:right; min-width:80px; display:flex; flex-direction:column; align-items:flex-end;">
-                     <div class="tech-info ${needsAlert && changedFields.includes('details') ? 'field-highlight' : ''}" style="border:1px solid #b3ffb3; border-radius:5px; padding:6px 10px; background:rgba(0,50,0,0.4); margin-bottom:4px;">${p.package_details || "-"}</div>
+                     <div class="tech-info ${needsAlert && changedFields.includes('details') ? 'field-highlight' : ''}${heavyStyle}" style="border:1px solid #b3ffb3; border-radius:5px; padding:6px 10px; background:rgba(0,50,0,0.4); margin-bottom:4px;">${p.package_details || "-"}</div>
                      ${(p.po_number && p.po_number.trim() !== "") ? `<div id="po-container-${id}" onclick="enterPoEdit(event, '${id}', '${(p.po_number||"").replace(/'/g, "\\'")}')" style="font-weight:bold; color:#aaa; font-size:15px; cursor:pointer;">PO: <span class="${needsAlert && changedFields.includes('po') ? 'field-highlight' : ''}" style="color:var(--accent);">${p.po_number}</span></div>` : ''}
                   </div>
               </div>
